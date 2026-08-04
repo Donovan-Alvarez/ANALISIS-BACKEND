@@ -1,0 +1,28 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: erp
+
+  datasource:
+    url: jdbc:oracle:thin:@localhost:1521/FREEPDB1
+    username: seguridad_user
+    password: 'Umg2026*'
+    driver-class-name: oracle.jdbc.OracleDriver
+
+  jackson:
+    date-format: yyyy-MM-dd'T'HH:mm:ss
+    time-zone: America/Guatemala
+
+logging:
+  level:
+    root: INFO
+    com.umg.seguridad: DEBUG
+    org.springframework.jdbc.core: DEBUG
+
+
+security:
+  jwt:
+    secret-key: CAMBIA_ESTO_POR_UNA_CLAVE_LARGA_Y_SEGURA_1234567890
+    expiration-ms: 3600000   # 1 hora

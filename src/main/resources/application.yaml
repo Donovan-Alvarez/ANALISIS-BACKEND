@@ -5,10 +5,17 @@ spring:
   application:
     name: erp
 
+  config:
+    # El sufijo [.properties] es obligatorio: Spring Boot no reconoce la
+    # extension ".env" y sin el no sabe que loader usar. Con "optional:" la
+    # ignoraria en silencio y la app arrancaria igual, fallando despues con
+    # ORA-01017 en la primera consulta.
+    import: optional:file:.env[.properties]
   datasource:
-    url: jdbc:oracle:thin:@localhost:1521/FREEPDB1
-    username: seguridad_user
-    password: 'Umg2026*'
+    url: ${DB_URL:jdbc:oracle:thin:@localhost:1521/orclpdb}
+#  url: ${DB_URL:jdbc:oracle:thin:@localhost:1521/XEPDB1} en caso de usar Oracle XE 21c    
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
     driver-class-name: oracle.jdbc.OracleDriver
 
   jackson:

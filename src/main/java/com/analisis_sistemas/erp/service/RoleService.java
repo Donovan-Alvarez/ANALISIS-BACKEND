@@ -3,6 +3,7 @@ package com.analisis_sistemas.erp.service;
 import com.analisis_sistemas.erp.dto.RoleDTO;
 import com.analisis_sistemas.erp.entity.Role;
 import com.analisis_sistemas.erp.repository.RoleRepository;
+import com.analisis_sistemas.erp.utils.SecurityUtils;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
@@ -34,8 +35,7 @@ public class RoleService {
     public RoleDTO create(RoleDTO dto) {
         Role role = toEntity(dto);
         role.setFechaCreacion(LocalDateTime.now());
-        // TODO: reemplazar por usuario autenticado via JWT
-        role.setUsuarioCreacion("system");
+        role.setUsuarioCreacion(SecurityUtils.getUsuarioAutenticado());
 
         Role saved = roleRepository.save(role);
         return toDTO(saved);
@@ -50,8 +50,7 @@ public class RoleService {
         role.setFechaCreacion(existente.getFechaCreacion());
         role.setUsuarioCreacion(existente.getUsuarioCreacion());
         role.setFechaModificacion(LocalDateTime.now());
-        // TODO: reemplazar por usuario autenticado via JWT
-        role.setUsuarioModificacion("system");
+        role.setUsuarioModificacion(SecurityUtils.getUsuarioAutenticado());
 
         roleRepository.update(role);
         return toDTO(role);

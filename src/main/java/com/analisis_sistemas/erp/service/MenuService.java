@@ -4,6 +4,7 @@ import com.analisis_sistemas.erp.dto.MenuDTO;
 import com.analisis_sistemas.erp.entity.Menu;
 import com.analisis_sistemas.erp.repository.MenuRepository;
 import com.analisis_sistemas.erp.repository.ModuloRepository;
+import com.analisis_sistemas.erp.utils.SecurityUtils;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
@@ -45,8 +46,7 @@ public class MenuService {
 
         Menu menu = toEntity(dto);
         menu.setFechaCreacion(LocalDateTime.now());
-        // TODO: reemplazar por usuario autenticado via JWT
-        menu.setUsuarioCreacion("system");
+        menu.setUsuarioCreacion(SecurityUtils.getUsuarioAutenticado());
 
         Menu saved = menuRepository.save(menu);
         return toDTO(saved);
@@ -63,8 +63,7 @@ public class MenuService {
         menu.setFechaCreacion(existente.getFechaCreacion());
         menu.setUsuarioCreacion(existente.getUsuarioCreacion());
         menu.setFechaModificacion(LocalDateTime.now());
-        // TODO: reemplazar por usuario autenticado via JWT
-        menu.setUsuarioModificacion("system");
+        menu.setUsuarioModificacion(SecurityUtils.getUsuarioAutenticado());
 
         menuRepository.update(menu);
         return toDTO(menu);

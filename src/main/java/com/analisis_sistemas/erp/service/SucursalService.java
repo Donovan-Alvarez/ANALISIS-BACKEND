@@ -4,6 +4,7 @@ import com.analisis_sistemas.erp.dto.SucursalDTO;
 import com.analisis_sistemas.erp.entity.Sucursal;
 import com.analisis_sistemas.erp.repository.EmpresaRepository;
 import com.analisis_sistemas.erp.repository.SucursalRepository;
+import com.analisis_sistemas.erp.utils.SecurityUtils;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
@@ -45,8 +46,7 @@ public class SucursalService {
 
         Sucursal sucursal = toEntity(dto);
         sucursal.setFechaCreacion(LocalDateTime.now());
-        // TODO: reemplazar por usuario autenticado via JWT
-        sucursal.setUsuarioCreacion("system");
+        sucursal.setUsuarioCreacion(SecurityUtils.getUsuarioAutenticado());
 
         Sucursal saved = sucursalRepository.save(sucursal);
         return toDTO(saved);
@@ -63,8 +63,7 @@ public class SucursalService {
         sucursal.setFechaCreacion(existente.getFechaCreacion());
         sucursal.setUsuarioCreacion(existente.getUsuarioCreacion());
         sucursal.setFechaModificacion(LocalDateTime.now());
-        // TODO: reemplazar por usuario autenticado via JWT
-        sucursal.setUsuarioModificacion("system");
+        sucursal.setUsuarioModificacion(SecurityUtils.getUsuarioAutenticado());
 
         sucursalRepository.update(sucursal);
         return toDTO(sucursal);

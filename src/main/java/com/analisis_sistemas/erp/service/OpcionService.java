@@ -4,6 +4,7 @@ import com.analisis_sistemas.erp.dto.OpcionDTO;
 import com.analisis_sistemas.erp.entity.Opcion;
 import com.analisis_sistemas.erp.repository.MenuRepository;
 import com.analisis_sistemas.erp.repository.OpcionRepository;
+import com.analisis_sistemas.erp.utils.SecurityUtils;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
@@ -45,8 +46,7 @@ public class OpcionService {
 
         Opcion opcion = toEntity(dto);
         opcion.setFechaCreacion(LocalDateTime.now());
-        // TODO: reemplazar por usuario autenticado via JWT
-        opcion.setUsuarioCreacion("system");
+        opcion.setUsuarioCreacion(SecurityUtils.getUsuarioAutenticado());
 
         Opcion saved = opcionRepository.save(opcion);
         return toDTO(saved);
@@ -63,8 +63,7 @@ public class OpcionService {
         opcion.setFechaCreacion(existente.getFechaCreacion());
         opcion.setUsuarioCreacion(existente.getUsuarioCreacion());
         opcion.setFechaModificacion(LocalDateTime.now());
-        // TODO: reemplazar por usuario autenticado via JWT
-        opcion.setUsuarioModificacion("system");
+        opcion.setUsuarioModificacion(SecurityUtils.getUsuarioAutenticado());
 
         opcionRepository.update(opcion);
         return toDTO(opcion);

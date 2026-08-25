@@ -11,6 +11,7 @@ import com.analisis_sistemas.erp.repository.RoleRepository;
 import com.analisis_sistemas.erp.repository.StatusUsuarioRepository;
 import com.analisis_sistemas.erp.repository.SucursalRepository;
 import com.analisis_sistemas.erp.repository.UsuarioRepository;
+import com.analisis_sistemas.erp.utils.SecurityUtils;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -77,13 +78,13 @@ public class UsuarioService {
 
         Usuario usuario = toEntity(dto);
         usuario.setPassword(passwordEncoder.encode(dto.getPassword()));
+        usuario.setRespuesta(passwordEncoder.encode(dto.getRespuesta()));
         usuario.setIntentosDeAcceso(0);
         usuario.setUltimaFechaIngreso(null);
         usuario.setSesionActual(null);
         usuario.setUltimaFechaCambioPassword(LocalDateTime.now());
         usuario.setFechaCreacion(LocalDateTime.now());
-        // TODO: reemplazar por usuario autenticado via JWT
-        usuario.setUsuarioCreacion("system");
+        usuario.setUsuarioCreacion(SecurityUtils.getUsuarioAutenticado());
 
         Usuario saved = usuarioRepository.save(usuario);
         return toResponseDTO(saved);
@@ -111,14 +112,20 @@ public class UsuarioService {
             usuario.setUltimaFechaCambioPassword(existente.getUltimaFechaCambioPassword());
         }
 
+        boolean cambiaRespuesta = dto.getRespuesta() != null && !dto.getRespuesta().isBlank();
+        if (cambiaRespuesta) {
+            usuario.setRespuesta(passwordEncoder.encode(dto.getRespuesta()));
+        } else {
+            usuario.setRespuesta(existente.getRespuesta());
+        }
+
         usuario.setIntentosDeAcceso(existente.getIntentosDeAcceso());
         usuario.setUltimaFechaIngreso(existente.getUltimaFechaIngreso());
         usuario.setSesionActual(existente.getSesionActual());
         usuario.setFechaCreacion(existente.getFechaCreacion());
         usuario.setUsuarioCreacion(existente.getUsuarioCreacion());
         usuario.setFechaModificacion(LocalDateTime.now());
-        // TODO: reemplazar por usuario autenticado via JWT
-        usuario.setUsuarioModificacion("system");
+        usuario.setUsuarioModificacion(SecurityUtils.getUsuarioAutenticado());
 
         usuarioRepository.update(usuario);
         return toResponseDTO(usuario);
@@ -154,7 +161,7 @@ public class UsuarioService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "La empresa con id " + sucursal.getIdEmpresa() + " no existe"));
     }
 
-    private void validarPoliticaPassword(String password, Empresa empresa) {
+    void validarPoliticaPassword(String password, Empresa empresa) {
         Integer largoMinimo = empresa.getPasswordLargo();
         if (largoMinimo != null && password.length() < largoMinimo) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
@@ -245,7 +252,6 @@ public class UsuarioService {
         usuario.setTelefonoMovil(dto.getTelefonoMovil());
         usuario.setIdSucursal(dto.getIdSucursal());
         usuario.setPregunta(dto.getPregunta());
-        usuario.setRespuesta(dto.getRespuesta());
         usuario.setIdRole(dto.getIdRole());
         return usuario;
     }

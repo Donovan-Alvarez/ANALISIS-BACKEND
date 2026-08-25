@@ -3,6 +3,7 @@ package com.analisis_sistemas.erp.service;
 import com.analisis_sistemas.erp.dto.StatusUsuarioDTO;
 import com.analisis_sistemas.erp.entity.StatusUsuario;
 import com.analisis_sistemas.erp.repository.StatusUsuarioRepository;
+import com.analisis_sistemas.erp.utils.SecurityUtils;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
@@ -34,8 +35,7 @@ public class StatusUsuarioService {
     public StatusUsuarioDTO create(StatusUsuarioDTO dto) {
         StatusUsuario statusUsuario = toEntity(dto);
         statusUsuario.setFechaCreacion(LocalDateTime.now());
-        // TODO: reemplazar por usuario autenticado via JWT
-        statusUsuario.setUsuarioCreacion("system");
+        statusUsuario.setUsuarioCreacion(SecurityUtils.getUsuarioAutenticado());
 
         StatusUsuario saved = statusUsuarioRepository.save(statusUsuario);
         return toDTO(saved);
@@ -50,8 +50,7 @@ public class StatusUsuarioService {
         statusUsuario.setFechaCreacion(existente.getFechaCreacion());
         statusUsuario.setUsuarioCreacion(existente.getUsuarioCreacion());
         statusUsuario.setFechaModificacion(LocalDateTime.now());
-        // TODO: reemplazar por usuario autenticado via JWT
-        statusUsuario.setUsuarioModificacion("system");
+        statusUsuario.setUsuarioModificacion(SecurityUtils.getUsuarioAutenticado());
 
         statusUsuarioRepository.update(statusUsuario);
         return toDTO(statusUsuario);

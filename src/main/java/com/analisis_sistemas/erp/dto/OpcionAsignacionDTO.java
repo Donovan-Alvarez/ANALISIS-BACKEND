@@ -1,0 +1,22 @@
+package com.analisis_sistemas.erp.dto;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class OpcionAsignacionDTO {
+
+    private Integer idOpcion;
+    private String nombre;
+
+    // Derivado: true si existe fila en ROLE_OPCION para este IdRole+IdOpcion, no es una columna.
+    private boolean consultar;
+    private boolean alta;
+    private boolean baja;
+    private boolean cambio;
+    private boolean imprimir;
+    private boolean exportar;
+}

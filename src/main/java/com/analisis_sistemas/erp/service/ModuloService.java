@@ -3,6 +3,7 @@ package com.analisis_sistemas.erp.service;
 import com.analisis_sistemas.erp.dto.ModuloDTO;
 import com.analisis_sistemas.erp.entity.Modulo;
 import com.analisis_sistemas.erp.repository.ModuloRepository;
+import com.analisis_sistemas.erp.utils.SecurityUtils;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
@@ -34,8 +35,7 @@ public class ModuloService {
     public ModuloDTO create(ModuloDTO dto) {
         Modulo modulo = toEntity(dto);
         modulo.setFechaCreacion(LocalDateTime.now());
-        // TODO: reemplazar por usuario autenticado via JWT
-        modulo.setUsuarioCreacion("system");
+        modulo.setUsuarioCreacion(SecurityUtils.getUsuarioAutenticado());
 
         Modulo saved = moduloRepository.save(modulo);
         return toDTO(saved);
@@ -50,8 +50,7 @@ public class ModuloService {
         modulo.setFechaCreacion(existente.getFechaCreacion());
         modulo.setUsuarioCreacion(existente.getUsuarioCreacion());
         modulo.setFechaModificacion(LocalDateTime.now());
-        // TODO: reemplazar por usuario autenticado via JWT
-        modulo.setUsuarioModificacion("system");
+        modulo.setUsuarioModificacion(SecurityUtils.getUsuarioAutenticado());
 
         moduloRepository.update(modulo);
         return toDTO(modulo);

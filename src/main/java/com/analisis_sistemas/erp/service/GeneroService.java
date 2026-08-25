@@ -3,6 +3,7 @@ package com.analisis_sistemas.erp.service;
 import com.analisis_sistemas.erp.dto.GeneroDTO;
 import com.analisis_sistemas.erp.entity.Genero;
 import com.analisis_sistemas.erp.repository.GeneroRepository;
+import com.analisis_sistemas.erp.utils.SecurityUtils;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
@@ -34,8 +35,7 @@ public class GeneroService {
     public GeneroDTO create(GeneroDTO dto) {
         Genero genero = toEntity(dto);
         genero.setFechaCreacion(LocalDateTime.now());
-        // TODO: reemplazar por usuario autenticado via JWT
-        genero.setUsuarioCreacion("system");
+        genero.setUsuarioCreacion(SecurityUtils.getUsuarioAutenticado());
 
         Genero saved = generoRepository.save(genero);
         return toDTO(saved);
@@ -50,8 +50,7 @@ public class GeneroService {
         genero.setFechaCreacion(existente.getFechaCreacion());
         genero.setUsuarioCreacion(existente.getUsuarioCreacion());
         genero.setFechaModificacion(LocalDateTime.now());
-        // TODO: reemplazar por usuario autenticado via JWT
-        genero.setUsuarioModificacion("system");
+        genero.setUsuarioModificacion(SecurityUtils.getUsuarioAutenticado());
 
         generoRepository.update(genero);
         return toDTO(genero);

@@ -1,5 +1,13 @@
 server:
   port: 8080
+  error:
+    # Sin esto, el motivo de un ResponseStatusException (por ejemplo
+    # "La contrasena debe tener al menos 8 caracteres") solo viaja dentro de
+    # "trace" y el frontend no puede mostrarselo al usuario.
+    include-message: always
+    include-binding-errors: always
+    # El stacktrace no deberia salir del servidor; en produccion cambiar a never.
+    include-stacktrace: on_param
 
 spring:
   application:

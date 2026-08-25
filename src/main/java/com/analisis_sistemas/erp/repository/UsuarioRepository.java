@@ -133,6 +133,13 @@ public class UsuarioRepository {
         jdbcTemplate.update(sql, sesionActual, idUsuario);
     }
 
+    // Update acotado a Password: lo usa RecuperacionPasswordService para no pasar por
+    // update() (que exige y sobreescribe el resto de los campos del usuario).
+    public void actualizarPassword(String idUsuario, String passwordHash, LocalDateTime ultimaFechaCambioPassword) {
+        String sql = "UPDATE USUARIO SET Password = ?, UltimaFechaCambioPassword = ? WHERE IdUsuario = ?";
+        jdbcTemplate.update(sql, passwordHash, toTimestamp(ultimaFechaCambioPassword), idUsuario);
+    }
+
     private Timestamp toTimestamp(LocalDateTime dateTime) {
         return dateTime != null ? Timestamp.valueOf(dateTime) : null;
     }

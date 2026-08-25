@@ -153,7 +153,7 @@ public class UsuarioService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "El role con id " + idRole + " no existe"));
     }
 
-    private Empresa obtenerEmpresaDesdeSucursal(Integer idSucursal) {
+    Empresa obtenerEmpresaDesdeSucursal(Integer idSucursal) {
         Sucursal sucursal = sucursalRepository.findById(idSucursal)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "La sucursal con id " + idSucursal + " no existe"));
 

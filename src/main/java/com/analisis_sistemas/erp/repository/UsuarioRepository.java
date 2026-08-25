@@ -128,9 +128,11 @@ public class UsuarioRepository {
         jdbcTemplate.update(sql, nuevosIntentos, idStatusUsuario, idUsuario);
     }
 
-    public void registrarLoginExitoso(String idUsuario, String sesionActual) {
-        String sql = "UPDATE USUARIO SET IntentosDeAcceso = 0, UltimaFechaIngreso = SYSTIMESTAMP, SesionActual = ? WHERE IdUsuario = ?";
-        jdbcTemplate.update(sql, sesionActual, idUsuario);
+    // SesionActual ya no se escribe desde aqui: TRG_SESION_SYNC_USUARIO lo hace
+    // automaticamente al llamar PR_SESION_INICIAR (ver SesionRepository.iniciarSesion).
+    public void registrarLoginExitoso(String idUsuario) {
+        String sql = "UPDATE USUARIO SET IntentosDeAcceso = 0, UltimaFechaIngreso = SYSTIMESTAMP WHERE IdUsuario = ?";
+        jdbcTemplate.update(sql, idUsuario);
     }
 
     // Update acotado a Password: lo usa RecuperacionPasswordService para no pasar por

@@ -1,5 +1,6 @@
 package com.analisis_sistemas.erp.security;
 
+import com.analisis_sistemas.erp.repository.SesionRepository;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -20,9 +21,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private static final String PREFIX_BEARER = "Bearer ";
 
     private final JwtService jwtService;
+    private final SesionRepository sesionRepository;
 
-    public JwtAuthenticationFilter(JwtService jwtService) {
+    public JwtAuthenticationFilter(JwtService jwtService, SesionRepository sesionRepository) {
         this.jwtService = jwtService;
+        this.sesionRepository = sesionRepository;
     }
 
     @Override
@@ -35,16 +38,23 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             String token = header.substring(PREFIX_BEARER.length());
 
             if (jwtService.validateToken(token)) {
-                String idUsuario = jwtService.getIdUsuarioFromToken(token);
-                String nombreRole = jwtService.getNombreRoleFromToken(token);
+                String idSesion = jwtService.getIdSesionFromToken(token);
 
-                if (nombreRole != null) {
-                    String nombreAuthority = nombreRole.toUpperCase().replace(" ", "_");
-                    SimpleGrantedAuthority authority = new SimpleGrantedAuthority("ROLE_" + nombreAuthority);
-                    UsernamePasswordAuthenticationToken authentication =
-                            new UsernamePasswordAuthenticationToken(idUsuario, null, List.of(authority));
+                // Ademas de la firma/expiracion del JWT, la sesion debe seguir activa en
+                // SESION (FN_SESION_VALIDAR): un logout o una inactividad prolongada la
+                // invalidan aunque el JWT en si todavia no haya expirado.
+                if (sesionRepository.validarSesion(idSesion)) {
+                    String idUsuario = jwtService.getIdUsuarioFromToken(token);
+                    String nombreRole = jwtService.getNombreRoleFromToken(token);
 
-                    SecurityContextHolder.getContext().setAuthentication(authentication);
+                    if (nombreRole != null) {
+                        String nombreAuthority = nombreRole.toUpperCase().replace(" ", "_");
+                        SimpleGrantedAuthority authority = new SimpleGrantedAuthority("ROLE_" + nombreAuthority);
+                        UsernamePasswordAuthenticationToken authentication =
+                                new UsernamePasswordAuthenticationToken(idUsuario, null, List.of(authority));
+
+                        SecurityContextHolder.getContext().setAuthentication(authentication);
+                    }
                 }
             }
         }

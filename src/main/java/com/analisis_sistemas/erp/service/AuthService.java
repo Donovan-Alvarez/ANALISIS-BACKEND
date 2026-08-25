@@ -10,6 +10,7 @@ import com.analisis_sistemas.erp.entity.Usuario;
 import com.analisis_sistemas.erp.repository.BitacoraAccesoRepository;
 import com.analisis_sistemas.erp.repository.EmpresaRepository;
 import com.analisis_sistemas.erp.repository.RoleRepository;
+import com.analisis_sistemas.erp.repository.SesionRepository;
 import com.analisis_sistemas.erp.repository.StatusUsuarioRepository;
 import com.analisis_sistemas.erp.repository.SucursalRepository;
 import com.analisis_sistemas.erp.repository.TipoAccesoRepository;
@@ -37,6 +38,7 @@ public class AuthService {
     private final EmpresaRepository empresaRepository;
     private final SucursalRepository sucursalRepository;
     private final RoleRepository roleRepository;
+    private final SesionRepository sesionRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final JwtProperties jwtProperties;
@@ -48,6 +50,7 @@ public class AuthService {
                         EmpresaRepository empresaRepository,
                         SucursalRepository sucursalRepository,
                         RoleRepository roleRepository,
+                        SesionRepository sesionRepository,
                         PasswordEncoder passwordEncoder,
                         JwtService jwtService,
                         JwtProperties jwtProperties) {
@@ -58,6 +61,7 @@ public class AuthService {
         this.empresaRepository = empresaRepository;
         this.sucursalRepository = sucursalRepository;
         this.roleRepository = roleRepository;
+        this.sesionRepository = sesionRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
         this.jwtProperties = jwtProperties;
@@ -86,17 +90,18 @@ public class AuthService {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, MENSAJE_ERROR_GENERICO);
         }
 
-        String sesionGenerada = UUID.randomUUID().toString();
-        usuarioRepository.registrarLoginExitoso(usuario.getIdUsuario(), sesionGenerada);
+        String idSesion = UUID.randomUUID().toString();
+        usuarioRepository.registrarLoginExitoso(usuario.getIdUsuario());
+        sesionRepository.iniciarSesion(usuario.getIdUsuario(), idSesion, direccionIp, httpUserAgent);
 
         Integer idTipoAcceso = obtenerIdTipoAcceso("Acceso Concedido");
-        bitacoraAccesoRepository.insertar(usuario.getIdUsuario(), idTipoAcceso, httpUserAgent, direccionIp, ACCESO_CONCEDIDO, sesionGenerada);
+        bitacoraAccesoRepository.insertar(usuario.getIdUsuario(), idTipoAcceso, httpUserAgent, direccionIp, ACCESO_CONCEDIDO, idSesion);
 
         String nombreRole = roleRepository.findById(usuario.getIdRole())
                 .map(role -> role.getNombre())
                 .orElse(null);
 
-        String token = jwtService.generateToken(usuario.getIdUsuario(), usuario.getIdRole(), usuario.getNombre(), nombreRole);
+        String token = jwtService.generateToken(usuario.getIdUsuario(), usuario.getIdRole(), usuario.getNombre(), nombreRole, idSesion);
 
         LoginResponseDTO response = new LoginResponseDTO();
         response.setToken(token);
@@ -107,6 +112,10 @@ public class AuthService {
         response.setExpiraEn(jwtProperties.getExpirationMs());
 
         return response;
+    }
+
+    public void logout(String idSesion) {
+        sesionRepository.cerrarSesion(idSesion);
     }
 
     private void registrarIntentoFallido(Usuario usuario, String httpUserAgent, String direccionIp) {

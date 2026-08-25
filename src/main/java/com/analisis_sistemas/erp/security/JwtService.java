@@ -22,7 +22,7 @@ public class JwtService {
         this.secretKey = Keys.hmacShaKeyFor(jwtProperties.getSecretKey().getBytes(StandardCharsets.UTF_8));
     }
 
-    public String generateToken(String idUsuario, Integer idRole, String nombre, String nombreRole) {
+    public String generateToken(String idUsuario, Integer idRole, String nombre, String nombreRole, String idSesion) {
         Date ahora = new Date();
         Date expiracion = new Date(ahora.getTime() + jwtProperties.getExpirationMs());
 
@@ -31,6 +31,7 @@ public class JwtService {
                 .claim("idRole", idRole)
                 .claim("nombre", nombre)
                 .claim("nombreRole", nombreRole)
+                .claim("idSesion", idSesion)
                 .issuedAt(ahora)
                 .expiration(expiracion)
                 .signWith(secretKey)
@@ -59,6 +60,10 @@ public class JwtService {
 
     public String getNombreRoleFromToken(String token) {
         return parseClaims(token).get("nombreRole", String.class);
+    }
+
+    public String getIdSesionFromToken(String token) {
+        return parseClaims(token).get("idSesion", String.class);
     }
 
     private Claims parseClaims(String token) {

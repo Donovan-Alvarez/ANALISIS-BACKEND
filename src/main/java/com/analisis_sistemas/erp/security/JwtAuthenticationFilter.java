@@ -53,6 +53,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                         UsernamePasswordAuthenticationToken authentication =
                                 new UsernamePasswordAuthenticationToken(idUsuario, null, List.of(authority));
 
+                        // El idRole numerico (no solo el nombre de rol como authority) viaja en
+                        // los "details" de la autenticacion: lo consume PermisoAccionInterceptor
+                        // para resolver permisos por accion contra ROLE_OPCION. No se usa como
+                        // principal para no afectar a SecurityUtils.getUsuarioAutenticado(), que
+                        // sigue leyendo auth.getName() (idUsuario) para auditoria.
+                        authentication.setDetails(jwtService.getIdRoleFromToken(token));
+
                         SecurityContextHolder.getContext().setAuthentication(authentication);
                     }
                 }

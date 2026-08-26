@@ -7,6 +7,7 @@ import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Repository
@@ -50,6 +51,26 @@ public class RoleOpcionRepository {
                 rs.getInt("Consultar") == 1, rs.getInt("Alta") == 1, rs.getInt("Baja") == 1,
                 rs.getInt("Cambio") == 1, rs.getInt("Imprimir") == 1, rs.getInt("Exportar") == 1
         ), idRole, idModulo);
+    }
+
+    // Flags de accion (Alta/Baja/Cambio) para un rol+opcion puntual. Lo usa
+    // PermisoAccionInterceptor para autorizar POST/PUT/DELETE antes de que el
+    // controller ejecute la accion (ver plan RBAC del 2026-08-25). Optional.empty()
+    // cuando no hay fila en ROLE_OPCION: el interceptor lo trata como todo en false,
+    // nunca como "permitido por defecto".
+    public record PermisoFlags(boolean alta, boolean baja, boolean cambio) {
+    }
+
+    public Optional<PermisoFlags> findFlags(Integer idRole, Integer idOpcion) {
+        String sql = """
+                SELECT Alta, Baja, Cambio
+                FROM ROLE_OPCION
+                WHERE IdRole = ? AND IdOpcion = ?
+                """;
+
+        return jdbcTemplate.query(sql, (rs, rowNum) -> new PermisoFlags(
+                rs.getInt("Alta") == 1, rs.getInt("Baja") == 1, rs.getInt("Cambio") == 1
+        ), idRole, idOpcion).stream().findFirst();
     }
 
     // Universo de IdOpcion que pertenecen al modulo: lo usa el Service tanto para

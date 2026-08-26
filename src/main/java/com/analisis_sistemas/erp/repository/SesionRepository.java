@@ -72,7 +72,6 @@ public class SesionRepository {
         callIniciarSesion.execute(params);
     }
 
-    /** Cierra una sesion puntual ("Salir del Sistema"). */
     public void cerrarSesion(String idSesion) {
         MapSqlParameterSource params = new MapSqlParameterSource()
                 .addValue("P_IDSESION", idSesion);

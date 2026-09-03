@@ -63,8 +63,6 @@ public class RoleOpcionService {
         String usuarioAutenticado = SecurityUtils.getUsuarioAutenticado();
         LocalDateTime fechaCreacion = LocalDateTime.now();
         for (OpcionPermisoRequestDTO permiso : permisos) {
-            // Tolerancia: si vino algun flag de accion en true aunque "consultar" haya llegado
-            // en false, igual se guarda la fila con los flags reales (sin forzarlos a partir de consultar).
             boolean seGuarda = permiso.isConsultar() || permiso.isAlta() || permiso.isBaja()
                     || permiso.isCambio() || permiso.isImprimir() || permiso.isExportar();
 

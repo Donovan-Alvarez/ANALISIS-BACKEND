@@ -6,7 +6,7 @@
 		<groupId>org.springframework.boot</groupId>
 		<artifactId>spring-boot-starter-parent</artifactId>
 		<version>4.1.0</version>
-		<relativePath/> <!-- lookup parent from repository -->
+		<relativePath/>
 	</parent>
 	<groupId>com.analisis-sistemas</groupId>
 	<artifactId>erp</artifactId>
@@ -30,7 +30,6 @@
 		<java.version>21</java.version>
 	</properties>
     <dependencies>
-        <!-- CAMBIAR: data-jdbc -> jdbc (sin mapeo automático) -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-jdbc</artifactId>
@@ -60,14 +59,12 @@
             <optional>true</optional>
         </dependency>
 
-        <!-- NUEVO: Driver de Oracle -->
         <dependency>
             <groupId>com.oracle.database.jdbc</groupId>
             <artifactId>ojdbc11</artifactId>
             <version>23.6.0.24.10</version>
         </dependency>
 
-        <!-- NUEVO: JWT -->
         <dependency>
             <groupId>io.jsonwebtoken</groupId>
             <artifactId>jjwt-api</artifactId>
@@ -86,7 +83,6 @@
             <scope>runtime</scope>
         </dependency>
 
-        <!-- Test: quitamos data-jdbc-test (ya no aplica sin Spring Data JDBC) -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-security-test</artifactId>

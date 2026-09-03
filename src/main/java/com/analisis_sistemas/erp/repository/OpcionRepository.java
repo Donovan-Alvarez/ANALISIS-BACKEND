@@ -42,10 +42,6 @@ public class OpcionRepository {
         return jdbcTemplate.query(sql, opcionRowMapper, id).stream().findFirst();
     }
 
-    // Resuelve IdOpcion a partir del slug de ruta del frontend (columna Pagina,
-    // ej. "sucursales"). Es la pieza que le permite a PermisoAccionInterceptor
-    // saber a que opcion de ROLE_OPCION corresponde una URL de /api/** sin tener
-    // que hardcodear IDs (ver plan RBAC del 2026-08-25).
     public Optional<Integer> findIdOpcionPorPagina(String pagina) {
         String sql = "SELECT IdOpcion FROM OPCION WHERE Pagina = ?";
         return jdbcTemplate.query(sql, (rs, rowNum) -> rs.getInt("IdOpcion"), pagina).stream().findFirst();

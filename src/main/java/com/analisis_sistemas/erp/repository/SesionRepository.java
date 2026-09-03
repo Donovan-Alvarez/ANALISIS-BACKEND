@@ -11,15 +11,6 @@ import java.math.BigDecimal;
 import java.sql.Types;
 import java.util.Map;
 
-/**
- * Acceso a la tabla SESION a traves de sus procedimientos almacenados.
- *
- * NOTA: este archivo se reconstruyo a partir de como lo usan AuthService y
- * JwtAuthenticationFilter, porque no venia en el commit que subio esa
- * funcionalidad y el proyecto no compilaba sin el. Las firmas salen del DDL
- * en database/01-schema-completo.sql (seccion 6 y 7). Si quien escribio la
- * version original la tiene, conviene comparar antes de dar esto por bueno.
- */
 @Repository
 public class SesionRepository {
 
@@ -28,9 +19,6 @@ public class SesionRepository {
     private final SimpleJdbcCall callValidarSesion;
 
     public SesionRepository(JdbcTemplate jdbcTemplate) {
-        // Mismo criterio que TokenRecuperacionRepository: los parametros se
-        // declaran explicitos (en MAYUSCULAS, como los guarda Oracle) en vez de
-        // dejar que SimpleJdbcCall los resuelva por metadata.
         this.callIniciarSesion = new SimpleJdbcCall(jdbcTemplate)
                 .withProcedureName("PR_SESION_INICIAR")
                 .withoutProcedureColumnMetaDataAccess()
@@ -57,12 +45,6 @@ public class SesionRepository {
                 );
     }
 
-    /**
-     * Abre una sesion nueva y cierra cualquier otra que el usuario tuviera
-     * activa (una sesion por usuario). PR_SESION_INICIAR delega en
-     * TRG_SESION_INICIO el calculo de FechaExpiracion/MinutosVigencia y en
-     * TRG_SESION_SYNC_USUARIO la actualizacion de USUARIO.SesionActual.
-     */
     public void iniciarSesion(String idUsuario, String idSesion, String direccionIp, String httpUserAgent) {
         MapSqlParameterSource params = new MapSqlParameterSource()
                 .addValue("P_IDUSUARIO", idUsuario)
@@ -78,10 +60,6 @@ public class SesionRepository {
         callCerrarSesion.execute(params);
     }
 
-    /**
-     * Devuelve true si la sesion sigue viva. Ademas desliza su vencimiento
-     * (sliding expiration), por eso se llama en cada request autenticado.
-     */
     public boolean validarSesion(String idSesion) {
         if (idSesion == null || idSesion.isBlank()) {
             return false;

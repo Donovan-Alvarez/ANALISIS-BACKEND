@@ -40,9 +40,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             if (jwtService.validateToken(token)) {
                 String idSesion = jwtService.getIdSesionFromToken(token);
 
-                // Ademas de la firma/expiracion del JWT, la sesion debe seguir activa en
-                // SESION (FN_SESION_VALIDAR): un logout o una inactividad prolongada la
-                // invalidan aunque el JWT en si todavia no haya expirado.
                 if (sesionRepository.validarSesion(idSesion)) {
                     String idUsuario = jwtService.getIdUsuarioFromToken(token);
                     String nombreRole = jwtService.getNombreRoleFromToken(token);
@@ -53,11 +50,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                         UsernamePasswordAuthenticationToken authentication =
                                 new UsernamePasswordAuthenticationToken(idUsuario, null, List.of(authority));
 
-                        // El idRole numerico (no solo el nombre de rol como authority) viaja en
-                        // los "details" de la autenticacion: lo consume PermisoAccionInterceptor
-                        // para resolver permisos por accion contra ROLE_OPCION. No se usa como
-                        // principal para no afectar a SecurityUtils.getUsuarioAutenticado(), que
-                        // sigue leyendo auth.getName() (idUsuario) para auditoria.
                         authentication.setDetails(jwtService.getIdRoleFromToken(token));
 
                         SecurityContextHolder.getContext().setAuthentication(authentication);

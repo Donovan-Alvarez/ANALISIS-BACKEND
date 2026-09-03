@@ -35,8 +35,6 @@ public class UsuarioRequestDTO {
     @NotNull(message = "El status de usuario es obligatorio")
     private Integer idStatusUsuario;
 
-    // Sin Bean Validation: en update() puede venir null/vacio (no se cambia el password existente).
-    // La obligatoriedad en create() y la politica de complejidad se validan en el Service.
     private String password;
 
     @NotNull(message = "El genero es obligatorio")

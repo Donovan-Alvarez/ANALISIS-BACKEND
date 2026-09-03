@@ -20,8 +20,6 @@ public class MenuUsuarioController {
         this.menuUsuarioService = menuUsuarioService;
     }
 
-    // El id de usuario se toma del JWT (Authentication), nunca de un parametro del cliente:
-    // asi cada quien solo puede ver el menu de su propio rol.
     @GetMapping("/actual")
     public ResponseEntity<List<ModuloMenuDTO>> obtenerMenuActual(Authentication authentication) {
         String idUsuario = authentication.getName();

@@ -19,8 +19,6 @@ public class RoleOpcionRepository {
         this.jdbcTemplate = jdbcTemplate;
     }
 
-    // Fila plana del join Modulo->Menu->Opcion con el permiso del rol ya resuelto
-    // (o en ceros si no hay fila en ROLE_OPCION). Mismo patron que MenuUsuarioRepository.FilaMenuRole.
     public record FilaOpcionRole(
             Integer idMenu, String menuNombre, Integer menuOrden,
             Integer idOpcion, String opcionNombre, Integer opcionOrden,
@@ -53,11 +51,6 @@ public class RoleOpcionRepository {
         ), idRole, idModulo);
     }
 
-    // Flags de accion (Alta/Baja/Cambio) para un rol+opcion puntual. Lo usa
-    // PermisoAccionInterceptor para autorizar POST/PUT/DELETE antes de que el
-    // controller ejecute la accion (ver plan RBAC del 2026-08-25). Optional.empty()
-    // cuando no hay fila en ROLE_OPCION: el interceptor lo trata como todo en false,
-    // nunca como "permitido por defecto".
     public record PermisoFlags(boolean alta, boolean baja, boolean cambio) {
     }
 
@@ -73,8 +66,6 @@ public class RoleOpcionRepository {
         ), idRole, idOpcion).stream().findFirst();
     }
 
-    // Universo de IdOpcion que pertenecen al modulo: lo usa el Service tanto para
-    // validar el body del PUT (400 si cuela una opcion de otro modulo) como para acotar el DELETE.
     public List<Integer> findIdsOpcionesPorModulo(Integer idModulo) {
         String sql = """
                 SELECT op.IdOpcion
@@ -90,8 +81,6 @@ public class RoleOpcionRepository {
             return 0;
         }
 
-        // Solo se concatenan los placeholders "?" (uno por id), nunca un valor: los valores
-        // reales siguen yendo como parametros bind mas abajo.
         String placeholders = idsOpciones.stream().map(id -> "?").collect(Collectors.joining(", "));
         String sql = "DELETE FROM ROLE_OPCION WHERE IdRole = ? AND IdOpcion IN (" + placeholders + ")";
 

@@ -12,7 +12,6 @@ public class BitacoraAccesoRepository {
         this.jdbcTemplate = jdbcTemplate;
     }
 
-    // TODO: parsear el User-Agent con una libreria (ej. UADetector) para poblar SistemaOperativo, Dispositivo y Browser
     public void insertar(String idUsuario, Integer idTipoAcceso, String httpUserAgent, String direccionIp, String acceso, String sesion) {
         String sql = """
                 INSERT INTO BITACORA_ACCESO (

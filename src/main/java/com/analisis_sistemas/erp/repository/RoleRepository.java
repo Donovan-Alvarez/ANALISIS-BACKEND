@@ -22,8 +22,6 @@ public class RoleRepository {
         this.roleRowMapper = roleRowMapper;
     }
 
-    // NOTA: "ROLE" es palabra reservada en Oracle, por eso el nombre de tabla va entre comillas dobles en todo el SQL.
-
     public List<Role> findAll() {
         String sql = """
                 SELECT IdRole, Nombre,

@@ -36,8 +36,6 @@ public class AuthController {
         return ResponseEntity.ok(response);
     }
 
-    // Requiere JWT valido (no esta en la lista de rutas publicas de SecurityConfig).
-    // El idSesion se saca del propio token, igual que hace JwtAuthenticationFilter.
     @PostMapping("/logout")
     public ResponseEntity<Void> logout(HttpServletRequest request) {
         String header = request.getHeader(HEADER_AUTHORIZATION);

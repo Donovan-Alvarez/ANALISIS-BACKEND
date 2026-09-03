@@ -1,12 +1,8 @@
 server:
   port: 8080
   error:
-    # Sin esto, el motivo de un ResponseStatusException (por ejemplo
-    # "La contrasena debe tener al menos 8 caracteres") solo viaja dentro de
-    # "trace" y el frontend no puede mostrarselo al usuario.
     include-message: always
     include-binding-errors: always
-    # El stacktrace no deberia salir del servidor; en produccion cambiar a never.
     include-stacktrace: on_param
 
 spring:
@@ -14,14 +10,9 @@ spring:
     name: erp
 
   config:
-    # El sufijo [.properties] es obligatorio: Spring Boot no reconoce la
-    # extension ".env" y sin el no sabe que loader usar. Con "optional:" la
-    # ignoraria en silencio y la app arrancaria igual, fallando despues con
-    # ORA-01017 en la primera consulta.
     import: optional:file:.env[.properties]
   datasource:
     url: ${DB_URL:jdbc:oracle:thin:@localhost:1521/orclpdb}
-#  url: ${DB_URL:jdbc:oracle:thin:@localhost:1521/XEPDB1} en caso de usar Oracle XE 21c    
     username: ${DB_USERNAME}
     password: ${DB_PASSWORD}
     driver-class-name: oracle.jdbc.OracleDriver
@@ -40,4 +31,4 @@ logging:
 security:
   jwt:
     secret-key: CAMBIA_ESTO_POR_UNA_CLAVE_LARGA_Y_SEGURA_1234567890
-    expiration-ms: 3600000   # 1 hora
+    expiration-ms: 3600000

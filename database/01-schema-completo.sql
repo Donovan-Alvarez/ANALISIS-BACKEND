@@ -1,77 +1,3 @@
-/* ================================================================
-   ERP - Modulo Seguridad · Script unico de base de datos (Oracle)
-   ================================================================
-   Consolida en un solo archivo:
-     - "Proyecto analisis II.sql"                  (Etapa 1: DDL + datos semilla)
-     - "Proyecto analisis II triggers oficial.sql" (Etapa 2: triggers, funciones, sesiones)
-     - Un ajuste final para que OPCION.Pagina apunte a las rutas de Angular.
-
-   COMO EJECUTARLO
-   ---------------
-   Este archivo usa terminadores "/" de PL/SQL, asi que necesita SQL*Plus,
-   SQLcl o SQL Developer (no funciona pegandolo en un cliente JDBC simple).
-
-     sqlplus seguridad_user@localhost:1521/orclpdb @01-schema-completo.sql
-
-   (sin el password en la linea: SQL*Plus lo pide de forma interactiva, y asi no
-   queda registrado en el historial de la terminal)
-
-   El usuario/esquema debe coincidir con lo que tiene application.yaml, que lee
-   sus credenciales de variables de entorno (ver .env.example en la raiz del
-   backend):
-     jdbc:oracle:thin:@localhost:1521/orclpdb · usuario seguridad_user
-
-   Esta maquina corre Oracle 19c: instancia "orcl", PDB "ORCLPDB". No existe
-   ningun FREEPDB1 (ese es el PDB por defecto de Oracle 23ai Free); apuntar ahi
-   produce ORA-12514. Para ver los servicios reales: lsnrctl status
-
-   SI EL USUARIO seguridad_user TODAVIA NO EXISTE, correr esto UNA VEZ como
-   SYSDBA conectado al PDB (no al CDB root) y despues volver a este script.
-
-   Este bloque es MANUAL, una sola vez por ambiente (local, de cada integrante,
-   staging, produccion). NO va en un pipeline automatizado ni se versiona con el
-   password puesto: el valor real se escribe a mano en el momento de correrlo y
-   debe coincidir con DB_PASSWORD del .env de ese ambiente.
-
-     set ORACLE_SID=orcl
-     sqlplus / as sysdba
-       ALTER SESSION SET CONTAINER = orclpdb;
-       CREATE USER seguridad_user IDENTIFIED BY "<REEMPLAZAR_ANTES_DE_CORRER>";
-       GRANT CONNECT, RESOURCE, CREATE VIEW, UNLIMITED TABLESPACE TO seguridad_user;
-       GRANT RESTRICTED SESSION TO seguridad_user;   -- ver nota de abajo
-
-   NOTA (RESTRICTED SESSION): ORCLPDB abre en modo RESTRICTED por una violacion
-   pendiente: existe un usuario COMUN llamado "HR" en el CDB root que no puede
-   sincronizarse al PDB porque todo nombre comun debe empezar con C##. Mientras
-   esa violacion siga, cualquier usuario normal recibe ORA-01035 al conectarse;
-   el grant de arriba es lo que deja pasar a seguridad_user. Diagnostico:
-     SELECT name, open_mode, restricted FROM v$pdbs;
-     SELECT cause, type, message, status FROM pdb_plug_in_violations;
-
-   NOTA: el script original creaba un usuario "C##ProyectoAnalisis". Ese prefijo
-   C## es para usuarios comunes del CDB root, incompatible con conectarse
-   directo al PDB como hace el backend. Por eso ese bloque se quito:
-   aqui el esquema se crea dentro del usuario con el que te conectes.
-
-   NOTA (SQL*Plus): los INSERT de OPCION traian un comentario a la derecha del
-   ";" en la misma linea. SQL*Plus se los saltaba SIN reportar error, dejando
-   OPCION vacia y haciendo fallar las 10 FK de ROLE_OPCION. Ya estan corregidos;
-   no vuelvas a poner comentarios despues de un ";".
-
-   CREDENCIALES DE PRUEBA (quedan listas al terminar el script)
-   ------------------------------------------------------------
-     Administrador / ITAdmin2026!    <- rol Administrador, ve todo el menu
-     system        / Sistema2026!    <- rol "Sin Opciones", entra pero sin menu
-
-   Los hashes bcrypt de la Seccion 8 (Etapa 2) pisan los MD5 que insertaba la
-   Etapa 1, que el backend no puede validar porque usa BCryptPasswordEncoder.
-   ================================================================ */
-
-
-/* ============================================================
-   TABLA: EMPRESA
-   ============================================================ */
-
 CREATE TABLE EMPRESA (
     IdEmpresa                              NUMBER GENERATED ALWAYS AS IDENTITY,
     Nombre                                 VARCHAR2(100) NOT NULL,
@@ -108,10 +34,6 @@ VALUES (
 );
 
 
-/* ============================================================
-   TABLA: SUCURSAL
-   ============================================================ */
-
 CREATE TABLE SUCURSAL (
     IdSucursal          NUMBER GENERATED ALWAYS AS IDENTITY,
     Nombre              VARCHAR2(100) NOT NULL,
@@ -135,10 +57,6 @@ VALUES (
 );
 
 
-/* ============================================================
-   TABLA: STATUS_USUARIO
-   ============================================================ */
-
 CREATE TABLE STATUS_USUARIO (
     IdStatusUsuario     NUMBER GENERATED ALWAYS AS IDENTITY,
     Nombre              VARCHAR2(100) NOT NULL,
@@ -159,10 +77,6 @@ INSERT INTO STATUS_USUARIO (Nombre, FechaCreacion, UsuarioCreacion, FechaModific
 VALUES ('Inactivo', SYSDATE, 'system', NULL, NULL);
 
 
-/* ============================================================
-   TABLA: GENERO
-   ============================================================ */
-
 CREATE TABLE GENERO (
     IdGenero            NUMBER GENERATED ALWAYS AS IDENTITY,
     Nombre              VARCHAR2(100) NOT NULL,
@@ -180,10 +94,6 @@ INSERT INTO GENERO (Nombre, FechaCreacion, UsuarioCreacion, FechaModificacion, U
 VALUES ('Femenino', SYSDATE, 'system', NULL, NULL);
 
 
-/* ============================================================
-   TABLA: ROLE
-   ============================================================ */
-
 CREATE TABLE ROLE (
     IdRole              NUMBER GENERATED ALWAYS AS IDENTITY,
     Nombre              VARCHAR2(50) NOT NULL,
@@ -200,10 +110,6 @@ VALUES ('Administrador', SYSDATE, 'system', NULL, NULL);
 INSERT INTO ROLE (Nombre, FechaCreacion, UsuarioCreacion, FechaModificacion, UsuarioModificacion)
 VALUES ('Sin Opciones', SYSDATE, 'system', NULL, NULL);
 
-
-/* ============================================================
-   TABLA: USUARIO
-   ============================================================ */
 
 CREATE TABLE USUARIO (
     IdUsuario                   VARCHAR2(100) NOT NULL,
@@ -236,9 +142,6 @@ CREATE TABLE USUARIO (
     CONSTRAINT FK_USUARIO_ROLE    FOREIGN KEY (IdRole) REFERENCES ROLE (IdRole)
 );
 
--- Nota: el script original inserta NULL en IdRole para el primer registro
--- ('system'), pero la columna IdRole es NOT NULL. Se corrigio a 2
--- ('Sin Opciones') para que el INSERT sea valido.
 
 INSERT INTO USUARIO (
     IdUsuario, Nombre, Apellido, FechaNacimiento, IdStatusUsuario,
@@ -275,10 +178,6 @@ VALUES (
 );
 
 
-/* ============================================================
-   TABLA: MODULO
-   ============================================================ */
-
 CREATE TABLE MODULO (
     IdModulo            NUMBER GENERATED ALWAYS AS IDENTITY,
     Nombre              VARCHAR2(50) NOT NULL,
@@ -293,10 +192,6 @@ CREATE TABLE MODULO (
 INSERT INTO MODULO (Nombre, OrdenMenu, FechaCreacion, UsuarioCreacion)
 VALUES ('Seguridad', 1, SYSDATE, 'system');
 
-
-/* ============================================================
-   TABLA: MENU
-   ============================================================ */
 
 CREATE TABLE MENU (
     IdMenu              NUMBER GENERATED ALWAYS AS IDENTITY,
@@ -323,10 +218,6 @@ VALUES (1, 'Estadisticas', 3, SYSDATE, 'system');
 INSERT INTO MENU (IdModulo, Nombre, OrdenMenu, FechaCreacion, UsuarioCreacion)
 VALUES (1, 'Procedimientos Almacenados', 4, SYSDATE, 'system');
 
-
-/* ============================================================
-   TABLA: OPCION
-   ============================================================ */
 
 CREATE TABLE OPCION (
     IdOpcion            NUMBER GENERATED ALWAYS AS IDENTITY,
@@ -372,10 +263,6 @@ VALUES (2, 'Usuarios', 3, 'usuario.php', SYSDATE, 'system');
 INSERT INTO OPCION (IdMenu, Nombre, OrdenMenu, Pagina, FechaCreacion, UsuarioCreacion)
 VALUES (2, 'Asignar Opciones a un Role', 3, 'asignacion_opcion_role.php', SYSDATE, 'system');
 
-
-/* ============================================================
-   TABLA: ROLE_OPCION
-   ============================================================ */
 
 CREATE TABLE ROLE_OPCION (
     IdRole              NUMBER NOT NULL,
@@ -425,10 +312,6 @@ INSERT INTO ROLE_OPCION (IdRole, IdOpcion, Alta, Baja, Cambio, Imprimir, Exporta
 VALUES (1, 10, 1, 1, 1, 1, 1, SYSDATE, 'system');
 
 
-/* ============================================================
-   TABLA: TIPO_ACCESO
-   ============================================================ */
-
 CREATE TABLE TIPO_ACCESO (
     IdTipoAcceso        NUMBER GENERATED ALWAYS AS IDENTITY,
     Nombre              VARCHAR2(100) NOT NULL,
@@ -455,10 +338,6 @@ INSERT INTO TIPO_ACCESO (Nombre, FechaCreacion, UsuarioCreacion, FechaModificaci
 VALUES ('Usuario ingresado no existe', SYSDATE, 'system', NULL, NULL);
 
 
-/* ============================================================
-   TABLA: BITACORA_ACCESO
-   ============================================================ */
-
 CREATE TABLE BITACORA_ACCESO (
     IdBitacoraAcceso    NUMBER GENERATED ALWAYS AS IDENTITY,
     IdUsuario           VARCHAR2(100) NOT NULL,
@@ -477,11 +356,6 @@ CREATE TABLE BITACORA_ACCESO (
 
 COMMIT;
 
-/* Fin etapa 1 */
-
-/* ============================================================
-   SECCION 1 - AUDITORIA   (sin cambios)
-   ============================================================ */
 
 CREATE OR REPLACE TRIGGER TRG_EMPRESA_AUDIT
 BEFORE INSERT OR UPDATE ON EMPRESA
@@ -627,25 +501,11 @@ END;
 /
 
 
-/* ============================================================
-   SECCION 2 - SEGURIDAD DE USUARIO
-   ============================================================
-   CAMBIO: TRG_USUARIO_PASSWORD_POLICY fue ELIMINADO. El BE ahora
-   valida la composicion del password (contra las columnas de
-   politica en EMPRESA, que siguen existiendo y disponibles para
-   que el BE las consulte) y lo hashea (bcrypt) ANTES de mandar el
-   INSERT/UPDATE. La BD solo recibe y guarda el hash ya resuelto.
-   Si en algun momento quieren que la BD tambien deje registro de
-   "cuando cambio el password" automaticamente (sin validar nada,
-   solo la marca de tiempo), avisen y agrego un trigger liviano
-   solo para eso.
-   ============================================================ */
-
 BEGIN
     EXECUTE IMMEDIATE 'DROP TRIGGER TRG_USUARIO_PASSWORD_POLICY';
 EXCEPTION
     WHEN OTHERS THEN
-        IF SQLCODE != -4080 THEN -- ORA-04080: el trigger no existe
+        IF SQLCODE != -4080 THEN
             RAISE;
         END IF;
 END;
@@ -694,7 +554,7 @@ BEGIN
     END IF;
 EXCEPTION
     WHEN NO_DATA_FOUND THEN
-        NULL; -- no existe el estatus bloqueado en el catalogo, no aplica el reset
+        NULL;
 END;
 /
 
@@ -717,14 +577,10 @@ BEGIN
         RAISE_APPLICATION_ERROR(-20021, 'Un usuario Bloqueado unicamente puede regresar a Activo o pasar a Inactivo.');
     END IF;
 EXCEPTION
-    WHEN NO_DATA_FOUND THEN NULL; -- catalogo de estatus incompleto, no se valida la transicion
+    WHEN NO_DATA_FOUND THEN NULL;
 END;
 /
 
-
-/* ============================================================
-   SECCION 3 - BITACORA DE ACCESO   (sin cambios; ver notas al final)
-   ============================================================ */
 
 CREATE OR REPLACE TRIGGER TRG_BITACORA_ACCESO_AIU
 AFTER INSERT ON BITACORA_ACCESO
@@ -743,7 +599,7 @@ BEGIN
             SesionActual = :NEW.Sesion
         WHERE IdUsuario = :NEW.IdUsuario;
 
-        -- revisa si el password ya caduco segun politica de la empresa
+
         BEGIN
             SELECT U.UltimaFechaCambioPassword, E.PasswordCantidadCaducidadDias
             INTO v_UltimoCambio, v_DiasCaducidad
@@ -763,20 +619,13 @@ BEGIN
         UPDATE USUARIO
         SET IntentosDeAcceso = IntentosDeAcceso + 1
         WHERE IdUsuario = :NEW.IdUsuario;
-        -- 'Usuario Inactivo' y 'Usuario ingresado no existe' solo quedan
-        -- registrados en la bitacora, no afectan IntentosDeAcceso.
     END IF;
 EXCEPTION
     WHEN NO_DATA_FOUND THEN
-        NULL; -- tipo de acceso no encontrado, no interrumpe el registro de bitacora
+        NULL;
 END;
 /
 
-
-/* ============================================================
-   SECCION 4 - INTEGRIDAD REFERENCIAL   (sin cambios; pendiente
-   de confirmar con el ingeniero si se mantienen - ver notas)
-   ============================================================ */
 
 CREATE OR REPLACE TRIGGER TRG_EMPRESA_BAJA_VALIDA
 BEFORE DELETE ON EMPRESA
@@ -862,10 +711,6 @@ END;
 /
 
 
-/* ============================================================
-   SECCION 5 - RECUPERACION DE CONTRASENA   (sin cambios)
-   ============================================================ */
-
 BEGIN
     EXECUTE IMMEDIATE 'DROP TABLE TOKEN_RECUPERACION_PASSWORD CASCADE CONSTRAINTS';
 EXCEPTION
@@ -893,7 +738,7 @@ BEFORE INSERT ON TOKEN_RECUPERACION_PASSWORD
 FOR EACH ROW
 BEGIN
     :NEW.FechaCreacion   := SYSDATE;
-    :NEW.FechaExpiracion := SYSDATE + (60 / 1440); -- 60 minutos de vigencia
+    :NEW.FechaExpiracion := SYSDATE + (60 / 1440);
     :NEW.Utilizado       := 0;
 END;
 /
@@ -912,10 +757,6 @@ BEGIN
 END;
 /
 
-
-/* ============================================================
-   SECCION 6 - GESTION DE SESIONES   (sin cambios)
-   ============================================================ */
 
 BEGIN
     EXECUTE IMMEDIATE 'ALTER TABLE EMPRESA ADD MinutosExpiracionSesion NUMBER DEFAULT 30 NOT NULL';
@@ -1000,40 +841,20 @@ END;
 /
 
 
-/* ============================================================
-   SECCION 7 - FUNCIONES Y PROCEDIMIENTOS DE APOYO
-   ============================================================
-   Ninguna de estas rutinas es un trigger: el BE debe llamarlas
-   explicitamente. Ver flujo de login mas abajo.
-   ============================================================ */
-
 BEGIN
     EXECUTE IMMEDIATE 'DROP FUNCTION FN_USUARIO_VALIDAR_CREDENCIALES';
 EXCEPTION
     WHEN OTHERS THEN
-        IF SQLCODE != -4043 THEN -- ORA-04043: el objeto no existe
+        IF SQLCODE != -4043 THEN
             RAISE;
         END IF;
 END;
 /
 
--- CAMBIO: reemplaza a FN_USUARIO_VALIDAR_CREDENCIALES. Ya NO recibe el
--- password ni lo hashea (eso ahora es 100% del BE, con bcrypt). Solo
--- recibe si el BE ya confirmo que el password coincide, y devuelve el
--- IdTipoAcceso correcto segun el estatus del usuario (existe, activo,
--- bloqueado) y ese resultado.
---
--- Flujo de login sugerido para el BE:
---   1. SELECT Password FROM USUARIO WHERE IdUsuario = :id
---   2. Si no hay fila, p_PasswordCorrecto = 0 (la funcion detecta la
---      inexistencia igual y devuelve 'Usuario ingresado no existe')
---   3. Si hay fila: bcrypt.compare(passwordTexto, hashGuardado)
---   4. v_tipo := FN_USUARIO_TIPO_ACCESO(:id, p_PasswordCorrecto)
---   5. INSERT INTO BITACORA_ACCESO (..., IdTipoAcceso) VALUES (..., v_tipo)
---      -> TRG_BITACORA_ACCESO_AIU hace el resto (contar intentos, bloquear, etc.)
+
 CREATE OR REPLACE FUNCTION FN_USUARIO_TIPO_ACCESO(
     p_IdUsuario        IN VARCHAR2,
-    p_PasswordCorrecto IN NUMBER -- 1 o 0; ya evaluado por el BE con bcrypt
+    p_PasswordCorrecto IN NUMBER
 ) RETURN NUMBER
 IS
     v_NombreStatus STATUS_USUARIO.Nombre%TYPE;
@@ -1078,11 +899,6 @@ END;
 /
 
 
--- Crea una sesion nueva y cierra cualquier sesion anterior que siga
--- activa para ese usuario (una sesion activa por usuario a la vez).
--- Vive en un procedimiento -y no en un trigger de SESION- porque un
--- trigger de fila no puede consultar/actualizar la misma tabla que lo
--- disparo (ORA-04091, "tabla mutante").
 CREATE OR REPLACE PROCEDURE PR_SESION_INICIAR(
     p_IdUsuario     IN VARCHAR2,
     p_IdSesion      IN VARCHAR2,
@@ -1098,23 +914,18 @@ BEGIN
 
     INSERT INTO SESION (IdSesion, IdUsuario, DireccionIp, HttpUserAgent)
     VALUES (p_IdSesion, p_IdUsuario, p_DireccionIp, p_HttpUserAgent);
-    -- TRG_SESION_INICIO calcula FechaInicio/FechaExpiracion/MinutosVigencia/Activa.
-    -- TRG_SESION_SYNC_USUARIO sincroniza USUARIO.SesionActual.
 END;
 /
 
--- Cierra una sesion puntual ("Salir del Sistema").
+
 CREATE OR REPLACE PROCEDURE PR_SESION_CERRAR(p_IdSesion IN VARCHAR2)
 IS
 BEGIN
     UPDATE SESION SET Activa = 0 WHERE IdSesion = p_IdSesion AND Activa = 1;
-    -- TRG_SESION_CIERRE_SYNC limpia USUARIO.SesionActual.
 END;
 /
 
--- El BE llama esto en CADA request autenticado. Devuelve 1 si la
--- sesion sigue viva -y de paso desliza (sliding expiration) su
--- vencimiento-; devuelve 0 si ya no es valida.
+
 CREATE OR REPLACE FUNCTION FN_SESION_VALIDAR(p_IdSesion IN VARCHAR2)
 RETURN NUMBER
 IS
@@ -1149,8 +960,6 @@ END;
 /
 
 
--- Genera un token de recuperacion nuevo e invalida cualquier token
--- anterior sin usar de ese mismo usuario.
 CREATE OR REPLACE PROCEDURE PR_TOKEN_RECUPERACION_GENERAR(
     p_IdUsuario   IN VARCHAR2,
     p_IdToken     IN VARCHAR2,
@@ -1169,12 +978,7 @@ BEGIN
 END;
 /
 
--- El BE llama esto cuando el usuario abre el link del correo. Devuelve
--- el IdUsuario dueno del token si es valido, o NULL si ya no sirve.
--- Nota: aqui tambien el BE es quien, tras recibir el IdUsuario valido,
--- valida composicion + hashea (bcrypt) el password nuevo y hace el
--- UPDATE USUARIO SET Password = <hash> directamente (ya no hay trigger
--- de por medio).
+
 CREATE OR REPLACE FUNCTION FN_TOKEN_RECUPERACION_VALIDAR(p_IdToken IN VARCHAR2)
 RETURN VARCHAR2
 IS
@@ -1199,20 +1003,6 @@ END;
 /
 
 
-/* ============================================================
-   SECCION 8 - AJUSTE DE PASSWORDS SEMILLA
-   ============================================================
-   CAMBIO: como ya no hay trigger que hashee, se insertan hashes
-   bcrypt REALES (generados con la libreria bcrypt, cost factor 10)
-   directamente. Estos corresponden a los siguientes passwords en
-   texto plano (documentado aqui solo para que ustedes los conozcan
-   y puedan iniciar sesion de prueba; normalmente esto NO se
-   documentaria asi en un entorno real):
-
-     system         -> Sistema2026!
-     Administrador  -> ITAdmin2026!
-   ============================================================ */
-
 UPDATE USUARIO
 SET Password = '$2b$10$Tlzia1TZ4Gf/xTrxVJmdv.jqVfxGE.ejhrWSetN/njWlq9ZHR1d8C'
 WHERE IdUsuario = 'system';
@@ -1223,21 +1013,6 @@ WHERE IdUsuario = 'Administrador';
 
 COMMIT;
 
-/* Fin */
-
-/* ============================================================
-   SECCION 9 - RUTAS DEL FRONTEND   (agregado en la consolidacion)
-   ============================================================
-   La Etapa 1 sembro OPCION.Pagina con nombres de archivo PHP
-   ('empresa.php', 'sucursal.php', ...), herencia del diseno original.
-
-   El frontend es Angular: el sidebar arma cada enlace con el valor de
-   Pagina tal cual (ver sidebar.ts / ICONOS_POR_PAGINA) y lo compara
-   contra las rutas de app.routes.ts. Con los .php el menu se renderiza
-   pero todos los enlaces quedan rotos.
-
-   Estos UPDATE alinean Pagina con las rutas reales de Angular.
-   ============================================================ */
 
 UPDATE OPCION SET Pagina = 'empresas'             WHERE Pagina = 'empresa.php';
 UPDATE OPCION SET Pagina = 'sucursales'           WHERE Pagina = 'sucursal.php';
@@ -1253,21 +1028,13 @@ UPDATE OPCION SET Pagina = 'asignacion-permisos'  WHERE Pagina = 'asignacion_opc
 COMMIT;
 
 
-/* ============================================================
-   VERIFICACION RAPIDA
-   ============================================================
-   Si estas tres consultas devuelven lo esperado, el backend deberia
-   levantar y el login funcionar.
-   ============================================================ */
-
--- 1) Las 14 tablas creadas
 SELECT table_name FROM user_tables ORDER BY table_name;
 
--- 2) Los dos usuarios, con hash bcrypt (debe empezar con $2b$10$)
+
 SELECT IdUsuario, IdRole, IdStatusUsuario, SUBSTR(Password, 1, 7) AS HashPrefijo
 FROM USUARIO ORDER BY IdUsuario;
 
--- 3) El menu que va a recibir el rol Administrador (IdRole = 1): 10 filas
+
 SELECT mo.Nombre AS Modulo, me.Nombre AS Menu, op.Nombre AS Opcion, op.Pagina
 FROM ROLE_OPCION ro
 JOIN OPCION op ON op.IdOpcion = ro.IdOpcion
@@ -1276,4 +1043,3 @@ JOIN MODULO mo ON mo.IdModulo = me.IdModulo
 WHERE ro.IdRole = 1
 ORDER BY mo.OrdenMenu, me.OrdenMenu, op.OrdenMenu;
 
-/* Fin del script consolidado */

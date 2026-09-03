@@ -12,7 +12,6 @@ public class OpcionAsignacionDTO {
     private Integer idOpcion;
     private String nombre;
 
-    // Derivado: true si existe fila en ROLE_OPCION para este IdRole+IdOpcion, no es una columna.
     private boolean consultar;
     private boolean alta;
     private boolean baja;

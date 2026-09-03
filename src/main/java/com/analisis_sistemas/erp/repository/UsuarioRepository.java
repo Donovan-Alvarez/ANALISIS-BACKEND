@@ -128,15 +128,11 @@ public class UsuarioRepository {
         jdbcTemplate.update(sql, nuevosIntentos, idStatusUsuario, idUsuario);
     }
 
-    // SesionActual ya no se escribe desde aqui: TRG_SESION_SYNC_USUARIO lo hace
-    // automaticamente al llamar PR_SESION_INICIAR (ver SesionRepository.iniciarSesion).
     public void registrarLoginExitoso(String idUsuario) {
         String sql = "UPDATE USUARIO SET IntentosDeAcceso = 0, UltimaFechaIngreso = SYSTIMESTAMP WHERE IdUsuario = ?";
         jdbcTemplate.update(sql, idUsuario);
     }
 
-    // Update acotado a Password: lo usa RecuperacionPasswordService para no pasar por
-    // update() (que exige y sobreescribe el resto de los campos del usuario).
     public void actualizarPassword(String idUsuario, String passwordHash, LocalDateTime ultimaFechaCambioPassword) {
         String sql = "UPDATE USUARIO SET Password = ?, UltimaFechaCambioPassword = ? WHERE IdUsuario = ?";
         jdbcTemplate.update(sql, passwordHash, toTimestamp(ultimaFechaCambioPassword), idUsuario);

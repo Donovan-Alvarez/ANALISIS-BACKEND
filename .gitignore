@@ -1,7 +1,6 @@
 ### Credenciales locales - NUNCA versionar ###
 .env
 .env.local
-!.env
 
 HELP.md
 target/

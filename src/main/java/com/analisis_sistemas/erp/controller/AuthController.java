@@ -1,9 +1,12 @@
 package com.analisis_sistemas.erp.controller;
 
+import com.analisis_sistemas.erp.dto.CambiarPasswordPropioRequestDTO;
 import com.analisis_sistemas.erp.dto.LoginRequestDTO;
 import com.analisis_sistemas.erp.dto.LoginResponseDTO;
 import com.analisis_sistemas.erp.security.JwtService;
 import com.analisis_sistemas.erp.service.AuthService;
+import com.analisis_sistemas.erp.service.UsuarioService;
+import com.analisis_sistemas.erp.utils.SecurityUtils;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
@@ -21,10 +24,12 @@ public class AuthController {
 
     private final AuthService authService;
     private final JwtService jwtService;
+    private final UsuarioService usuarioService;
 
-    public AuthController(AuthService authService, JwtService jwtService) {
+    public AuthController(AuthService authService, JwtService jwtService, UsuarioService usuarioService) {
         this.authService = authService;
         this.jwtService = jwtService;
+        this.usuarioService = usuarioService;
     }
 
     @PostMapping("/login")
@@ -46,6 +51,18 @@ public class AuthController {
             authService.logout(idSesion);
         }
 
+        return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * Cambio de password del propio usuario autenticado. Cubre tanto el
+     * cambio obligatorio (RequiereCambiarPassword = 1) como un cambio
+     * voluntario; en ambos casos requiere estar logueado (JWT valido).
+     */
+    @PostMapping("/cambiar-password")
+    public ResponseEntity<Void> cambiarPasswordPropio(@Valid @RequestBody CambiarPasswordPropioRequestDTO dto) {
+        String idUsuario = SecurityUtils.getUsuarioAutenticado();
+        usuarioService.cambiarPasswordPropio(idUsuario, dto.getPasswordNuevo());
         return ResponseEntity.noContent().build();
     }
 }

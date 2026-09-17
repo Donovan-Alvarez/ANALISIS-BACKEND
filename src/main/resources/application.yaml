@@ -3,7 +3,7 @@ server:
   error:
     include-message: always
     include-binding-errors: always
-    include-stacktrace: on_param
+    include-stacktrace: never
 
 spring:
   application:
@@ -30,5 +30,5 @@ logging:
 
 security:
   jwt:
-    secret-key: CAMBIA_ESTO_POR_UNA_CLAVE_LARGA_Y_SEGURA_1234567890
+    secret-key: ${JWT_SECRET}
     expiration-ms: 3600000

@@ -138,6 +138,20 @@ public class UsuarioService {
         }
     }
 
+    /**
+     * Cambio de password del propio usuario autenticado (incluye el flujo de
+     * cambio obligatorio: RequiereCambiarPassword queda en false al terminar).
+     */
+    public void cambiarPasswordPropio(String idUsuario, String passwordNuevo) {
+        Usuario usuario = usuarioRepository.findById(idUsuario)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado con id: " + idUsuario));
+
+        Empresa empresa = obtenerEmpresaDesdeSucursal(usuario.getIdSucursal());
+        validarPoliticaPassword(passwordNuevo, empresa);
+
+        usuarioRepository.actualizarPassword(idUsuario, passwordEncoder.encode(passwordNuevo), LocalDateTime.now());
+    }
+
     private void validarStatusUsuarioExiste(Integer idStatusUsuario) {
         statusUsuarioRepository.findById(idStatusUsuario)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "El status de usuario con id " + idStatusUsuario + " no existe"));

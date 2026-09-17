@@ -15,4 +15,5 @@ public class LoginResponseDTO {
     private Integer idRole;
     private String nombreRole;
     private Long expiraEn;
+    private Boolean requiereCambiarPassword;
 }

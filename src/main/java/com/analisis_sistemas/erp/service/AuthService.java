@@ -30,6 +30,10 @@ public class AuthService {
     private static final String ACCESO_CONCEDIDO = "CONCEDIDO";
     private static final String ACCESO_DENEGADO = "DENEGADO";
     private static final String MENSAJE_ERROR_GENERICO = "Usuario o contrasena incorrectos";
+    private static final String MENSAJE_CUENTA_BLOQUEADA =
+            "Tu cuenta esta bloqueada por exceder el numero de intentos permitidos. Contacta a un administrador para reactivarla.";
+    private static final String MENSAJE_CUENTA_INACTIVA = "Tu cuenta esta inactiva. Contacta a un administrador.";
+    private static final String NOMBRE_STATUS_BLOQUEADO = "Bloqueado por intentos de acceso";
 
     private final UsuarioRepository usuarioRepository;
     private final StatusUsuarioRepository statusUsuarioRepository;
@@ -78,16 +82,26 @@ public class AuthService {
 
         Usuario usuario = usuarioOpt.get();
 
-        StatusUsuario statusActivo = obtenerStatusUsuarioPorNombre("Activo");
-        if (!statusActivo.getIdStatusUsuario().equals(usuario.getIdStatusUsuario())) {
+        StatusUsuario statusDelUsuario = statusUsuarioRepository.findById(usuario.getIdStatusUsuario())
+                .orElseThrow(() -> new IllegalStateException(
+                        "El status de usuario con id " + usuario.getIdStatusUsuario() + " no existe en STATUS_USUARIO"));
+        String nombreStatus = statusDelUsuario.getNombre() != null ? statusDelUsuario.getNombre().trim() : "";
+
+        if (nombreStatus.toUpperCase().startsWith("BLOQUEADO")) {
+            Integer idTipoAcceso = obtenerIdTipoAcceso("Bloqueado - Numero de intentos exedidos");
+            bitacoraAccesoRepository.insertar(usuario.getIdUsuario(), idTipoAcceso, httpUserAgent, direccionIp, ACCESO_DENEGADO, null);
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, MENSAJE_CUENTA_BLOQUEADA);
+        }
+
+        if (!"ACTIVO".equalsIgnoreCase(nombreStatus)) {
             Integer idTipoAcceso = obtenerIdTipoAcceso("Usuario Inactivo");
             bitacoraAccesoRepository.insertar(usuario.getIdUsuario(), idTipoAcceso, httpUserAgent, direccionIp, ACCESO_DENEGADO, null);
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, MENSAJE_ERROR_GENERICO);
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, MENSAJE_CUENTA_INACTIVA);
         }
 
         if (!passwordEncoder.matches(dto.getPassword(), usuario.getPassword())) {
-            registrarIntentoFallido(usuario, httpUserAgent, direccionIp);
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, MENSAJE_ERROR_GENERICO);
+            String mensaje = registrarIntentoFallido(usuario, httpUserAgent, direccionIp);
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, mensaje);
         }
 
         String idSesion = UUID.randomUUID().toString();
@@ -110,6 +124,7 @@ public class AuthService {
         response.setIdRole(usuario.getIdRole());
         response.setNombreRole(nombreRole);
         response.setExpiraEn(jwtProperties.getExpirationMs());
+        response.setRequiereCambiarPassword(Boolean.TRUE.equals(usuario.getRequiereCambiarPassword()));
 
         return response;
     }
@@ -118,7 +133,12 @@ public class AuthService {
         sesionRepository.cerrarSesion(idSesion);
     }
 
-    private void registrarIntentoFallido(Usuario usuario, String httpUserAgent, String direccionIp) {
+    /**
+     * Registra el intento fallido y devuelve el mensaje que se le muestra al
+     * usuario: si esta llegada al limite lo bloquea, y si no, le avisa cuantos
+     * intentos le quedan antes de que eso ocurra.
+     */
+    private String registrarIntentoFallido(Usuario usuario, String httpUserAgent, String direccionIp) {
         int intentosActuales = usuario.getIntentosDeAcceso() != null ? usuario.getIntentosDeAcceso() : 0;
         int nuevosIntentos = intentosActuales + 1;
 
@@ -130,17 +150,28 @@ public class AuthService {
         Integer limiteIntentos = empresa.getPasswordIntentosAntesDeBloquear();
 
         if (limiteIntentos != null && nuevosIntentos >= limiteIntentos) {
-            StatusUsuario statusBloqueado = obtenerStatusUsuarioPorNombre("Bloqueado por intentos de acceso");
+            StatusUsuario statusBloqueado = obtenerStatusUsuarioPorNombre(NOMBRE_STATUS_BLOQUEADO);
             usuarioRepository.registrarIntentoFallido(usuario.getIdUsuario(), nuevosIntentos, statusBloqueado.getIdStatusUsuario());
 
             Integer idTipoAcceso = obtenerIdTipoAcceso("Bloqueado - Numero de intentos exedidos");
             bitacoraAccesoRepository.insertar(usuario.getIdUsuario(), idTipoAcceso, httpUserAgent, direccionIp, ACCESO_DENEGADO, null);
-        } else {
-            usuarioRepository.registrarIntentoFallido(usuario.getIdUsuario(), nuevosIntentos, usuario.getIdStatusUsuario());
 
-            Integer idTipoAcceso = obtenerIdTipoAcceso("Bloqueado - Password incorrecto");
-            bitacoraAccesoRepository.insertar(usuario.getIdUsuario(), idTipoAcceso, httpUserAgent, direccionIp, ACCESO_DENEGADO, null);
+            return MENSAJE_CUENTA_BLOQUEADA;
         }
+
+        usuarioRepository.registrarIntentoFallido(usuario.getIdUsuario(), nuevosIntentos, usuario.getIdStatusUsuario());
+
+        Integer idTipoAcceso = obtenerIdTipoAcceso("Bloqueado - Password incorrecto");
+        bitacoraAccesoRepository.insertar(usuario.getIdUsuario(), idTipoAcceso, httpUserAgent, direccionIp, ACCESO_DENEGADO, null);
+
+        if (limiteIntentos == null) {
+            return MENSAJE_ERROR_GENERICO;
+        }
+
+        int intentosRestantes = limiteIntentos - nuevosIntentos;
+        String plural = intentosRestantes == 1 ? "" : "s";
+        return MENSAJE_ERROR_GENERICO + ". Te queda" + (intentosRestantes == 1 ? "" : "n") + " "
+                + intentosRestantes + " intento" + plural + " antes de que tu cuenta se bloquee.";
     }
 
     private Integer obtenerIdTipoAcceso(String nombre) {

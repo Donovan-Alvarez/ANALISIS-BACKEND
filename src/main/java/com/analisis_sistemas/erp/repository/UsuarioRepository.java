@@ -133,8 +133,18 @@ public class UsuarioRepository {
         jdbcTemplate.update(sql, idUsuario);
     }
 
+    /**
+     * Además de actualizar el hash, limpia RequiereCambiarPassword: tanto el
+     * cambio obligatorio tras login como la recuperación por pregunta de
+     * seguridad terminan aquí, y en ambos casos el usuario ya demostró que
+     * conoce (o acaba de fijar) su password vigente.
+     */
     public void actualizarPassword(String idUsuario, String passwordHash, LocalDateTime ultimaFechaCambioPassword) {
-        String sql = "UPDATE USUARIO SET Password = ?, UltimaFechaCambioPassword = ? WHERE IdUsuario = ?";
+        String sql = """
+                UPDATE USUARIO
+                SET Password = ?, UltimaFechaCambioPassword = ?, RequiereCambiarPassword = 0
+                WHERE IdUsuario = ?
+                """;
         jdbcTemplate.update(sql, passwordHash, toTimestamp(ultimaFechaCambioPassword), idUsuario);
     }
 

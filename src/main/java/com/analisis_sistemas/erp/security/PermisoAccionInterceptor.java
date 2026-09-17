@@ -1,8 +1,10 @@
 package com.analisis_sistemas.erp.security;
 
+import com.analisis_sistemas.erp.entity.Usuario;
 import com.analisis_sistemas.erp.repository.OpcionRepository;
 import com.analisis_sistemas.erp.repository.RoleOpcionRepository;
 import com.analisis_sistemas.erp.repository.RoleOpcionRepository.PermisoFlags;
+import com.analisis_sistemas.erp.repository.UsuarioRepository;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.http.HttpStatus;
@@ -20,6 +22,8 @@ import java.util.Map;
 public class PermisoAccionInterceptor implements HandlerInterceptor {
 
     private static final String MENSAJE_SIN_PERMISO = "No tiene permiso para realizar esta acción.";
+    private static final String MENSAJE_DEBE_CAMBIAR_PASSWORD =
+            "Debes cambiar tu contraseña antes de continuar.";
 
     private static final Map<String, String> EXCEPCIONES_PATRON = Map.of(
             "/api/roles/{idRole}/opciones/por-modulo/{idModulo}", "asignacion-permisos"
@@ -27,10 +31,13 @@ public class PermisoAccionInterceptor implements HandlerInterceptor {
 
     private final OpcionRepository opcionRepository;
     private final RoleOpcionRepository roleOpcionRepository;
+    private final UsuarioRepository usuarioRepository;
 
-    public PermisoAccionInterceptor(OpcionRepository opcionRepository, RoleOpcionRepository roleOpcionRepository) {
+    public PermisoAccionInterceptor(OpcionRepository opcionRepository, RoleOpcionRepository roleOpcionRepository,
+                                     UsuarioRepository usuarioRepository) {
         this.opcionRepository = opcionRepository;
         this.roleOpcionRepository = roleOpcionRepository;
+        this.usuarioRepository = usuarioRepository;
     }
 
     @Override
@@ -42,6 +49,15 @@ public class PermisoAccionInterceptor implements HandlerInterceptor {
         String metodo = request.getMethod();
         if (!"POST".equals(metodo) && !"PUT".equals(metodo) && !"DELETE".equals(metodo)) {
             return true;
+        }
+
+        // Con un cambio de password pendiente no se permite ninguna alta/baja/
+        // cambio, aunque el JWT siga siendo válido (evita que alguien se salte
+        // la pantalla de cambio obligatorio llamando la API directo).
+        String idUsuario = idUsuarioAutenticado();
+        Usuario usuario = usuarioRepository.findById(idUsuario).orElse(null);
+        if (usuario != null && Boolean.TRUE.equals(usuario.getRequiereCambiarPassword())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, MENSAJE_DEBE_CAMBIAR_PASSWORD);
         }
 
         String patron = (String) request.getAttribute(HandlerMapping.BEST_MATCHING_PATTERN_ATTRIBUTE);
@@ -91,5 +107,13 @@ public class PermisoAccionInterceptor implements HandlerInterceptor {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, MENSAJE_SIN_PERMISO);
         }
         return idRole;
+    }
+
+    private String idUsuarioAutenticado() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, MENSAJE_SIN_PERMISO);
+        }
+        return auth.getName();
     }
 }

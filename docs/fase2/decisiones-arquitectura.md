@@ -126,7 +126,7 @@ Cada dev usa **solo** su rango en `RAISE_APPLICATION_ERROR`, para no chocar. Fas
 
 | Responsable | Opciones (slug) | Rango ORA | Usados |
 |---|---|---|---|
-| Donovan | estados-civiles, status-empleado, tipos-documento, departamentos, puestos, bancos | -20101 .. -20119 | -20101 a -20111 (`05`) |
+| Donovan | estados-civiles, status-empleado, tipos-documento, departamentos, puestos, bancos | -20101 .. -20119 | -20101 a -20111 (`05`), -20112 (`06`, guarda: departamentos sin empresa) |
 | Bryan | empleados, liquidacion | -20120 .. -20139 | — |
 | Cristian | inasistencias, calculo-planilla | -20140 .. -20159 | — |
 | Andrés | cuentas-bancarias, reporte-planilla | -20160 .. -20179 | — |

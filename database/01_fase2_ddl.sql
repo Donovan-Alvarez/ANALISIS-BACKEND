@@ -28,6 +28,9 @@
  *         BANCO; ademas UNIQUE compuesto en DEPARTAMENTO (IdEmpresa, Nombre)
  *         y PUESTO (IdDepartamento, Nombre) - verificado contra los seeds de
  *         02_fase2_seed_catalogos.sql, sin duplicados (ver informe).
+ *   - Paso E: DEPARTAMENTO.IdEmpresa es NOT NULL (un departamento siempre
+ *         pertenece a una empresa). En una BD creada antes de este cambio,
+ *         06_fase2_departamento_empresa_obligatoria.sql aplica lo mismo.
  *   - D3: nombres de constraint completos (p. ej.
  *         FK_DOCUMENTO_PERSONA_TIPO_DOCUMENTO, FK_CUENTA_BANCARIA_EMPLEADO_BANCO,
  *         FK_FLUJO_STATUS_EMPLEADO_STATUS_ACTUAL/NUEVO) porque Oracle 23ai
@@ -166,7 +169,7 @@ CREATE TABLE BANCO (
 CREATE TABLE DEPARTAMENTO (
     IdDepartamento      NUMBER GENERATED ALWAYS AS IDENTITY,
     Nombre              VARCHAR2(50) NOT NULL,
-    IdEmpresa           NUMBER,
+    IdEmpresa           NUMBER NOT NULL,
     FechaCreacion       DATE NOT NULL,
     UsuarioCreacion     VARCHAR2(100) NOT NULL,
     FechaModificacion   DATE,

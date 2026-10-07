@@ -8,6 +8,7 @@
 03_fase2_seed_personas_empleados.sql
 04_fase2_rbac.sql  (independiente de 01-03; MODULO/MENU/OPCION/ROLE_OPCION — solo con aprobación)
 05_fase2_endurecimiento.sql  (UNIQUE sobre OPCION.Pagina + triggers de baja de los catálogos de Planilla)
+06_fase2_departamento_empresa_obligatoria.sql  (DEPARTAMENTO.IdEmpresa NOT NULL; en una instalación nueva no hace nada)
 99_fase2_verificacion.sql  (solo lectura, al final, para confirmar que todo quedó bien)
 ```
 
@@ -38,6 +39,14 @@
 > **Si repites `01`, tienes que repetir `05`** (después de `02`/`03`/`04`):
 > el `DROP TABLE ... CASCADE CONSTRAINTS` de `01` también borra los
 > triggers de baja.
+>
+> `06_fase2_departamento_empresa_obligatoria.sql` hace obligatoria
+> `DEPARTAMENTO.IdEmpresa` (un departamento siempre pertenece a una
+> empresa). Desde el Paso E, `01` ya crea la columna como `NOT NULL`, así
+> que **en una instalación nueva `06` no hace nada** (avisa "ya es NOT
+> NULL: sin cambios"); solo cambia algo en una BD creada antes. Es
+> re-ejecutable. Si encuentra departamentos sin empresa, aborta con
+> `ORA-20112` sin tocar la tabla: asígnales una empresa y vuelve a correrlo.
 
 ## Cómo ejecutarlos: `run-sql.sh`
 
@@ -50,6 +59,8 @@ que tengas que escribir ni ver la contraseña en ningún momento.
 ./database/run-sql.sh database/01_fase2_ddl.sql
 ./database/run-sql.sh database/02_fase2_seed_catalogos.sql
 ./database/run-sql.sh database/03_fase2_seed_personas_empleados.sql
+./database/run-sql.sh database/05_fase2_endurecimiento.sql
+./database/run-sql.sh database/06_fase2_departamento_empresa_obligatoria.sql
 ./database/run-sql.sh database/99_fase2_verificacion.sql
 
 # si tu contenedor no se llama "oracle-seguridad":

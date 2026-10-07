@@ -69,13 +69,14 @@ Otros mapeos del handler (Paso B): ORA-02291 → 400 *"El registro relacionado s
 
 | Formato | Paquete | Versión de referencia | Licencia |
 |---|---|---|---|
-| PDF | `jspdf` + `jspdf-autotable` | 4.2.x / 5.0.x | MIT |
-| Excel (.xlsx) | `exceljs` | 4.4.x | MIT |
+| PDF | `jspdf` + `jspdf-autotable` | ^4.2.1 / **^5.0.8** | MIT |
+| Excel (.xlsx) | `exceljs` | ^4.4.0 | MIT |
 
 ```bash
 # en erp-frontend/
-npm install jspdf jspdf-autotable exceljs
+npm install jspdf@^4.2.1 jspdf-autotable@^5.0.8 exceljs@^4.4.0
 ```
+- **`jspdf-autotable` ≥ 5.0.7 es obligatorio** (corrección 2026-10-07, Paso C): 5.0.1 y 5.0.2 declaran `peerDependencies: jspdf ^2 || ^3` y no aceptan jsPDF 4; desde 5.0.7 aceptan `^4`. Se fija `^5.0.8`.
 - **Por qué estas:** jsPDF es el estándar para PDF en el navegador y `jspdf-autotable` arma tablas con encabezado repetido, paginación y totales (lo que piden los reportes de planilla y las boletas). ExcelJS genera `.xlsx` reales con estilos, anchos de columna y formato numérico/moneda.
 - **NO usar `xlsx` (SheetJS) de npm:** el paquete de npm quedó congelado en 0.18.5, con vulnerabilidades publicadas; las versiones corregidas solo se distribuyen fuera de npm.
 - **No hace falta `file-saver`:** descargar con `Blob` + `URL.createObjectURL` + un `<a download>` temporal.
@@ -86,8 +87,11 @@ npm install jspdf jspdf-autotable exceljs
 interface ColumnaExport { encabezado: string; campo: string; formato?: 'texto' | 'numero' | 'moneda' | 'fecha'; }
 exportarPdf(titulo: string, columnas: ColumnaExport[], filas: object[]): Promise<void>;
 exportarExcel(nombreHoja: string, columnas: ColumnaExport[], filas: object[]): Promise<void>;
+imprimir(titulo: string, columnas: ColumnaExport[], filas: object[]): Promise<void>;
 ```
-- El botón de exportar/imprimir solo se muestra si `PermisosService.permisosDe('<slug>')` da `exportar`/`imprimir` en `true`.
+- `imprimir()` (agregado 2026-10-07, Paso C) genera el mismo PDF que `exportarPdf`, le aplica `autoPrint()` y lo abre en un `<iframe>` oculto (no `window.open`, que los bloqueadores de ventanas emergentes frenan después de un `await`). No se usa `window.print()` sobre la pantalla.
+- Locale `es-GT`; formato `moneda` en quetzales (GTQ).
+- Los botones **Imprimir** y **Exportar** se **muestran siempre** y se **deshabilitan** si `PermisosService.permisosDe('<slug>')` da `imprimir`/`exportar` en `false`, igual que Nuevo/Editar/Eliminar (D7). No se ocultan (corrección 2026-10-07, Paso C).
 - Nadie mete otra librería de PDF/Excel por su cuenta; si el servicio no cubre un caso (p. ej. el formato de boleta), se extiende el servicio.
 
 **Estado:** el servicio y las dependencias **todavía no están en `erp-frontend`**.
@@ -109,7 +113,7 @@ exportarExcel(nombreHoja: string, columnas: ColumnaExport[], filas: object[]): P
 **Qué (confirmado 2026-10-07):** las pantallas nuevas copian el patrón de las pantallas de Fase 1 que ya usan `PermisosService` (`modulos`, `menus`, `opciones`, `usuarios`), no el de las primeras (`generos`, `roles`, `status-usuario`, que usan `confirm()` nativo y no consultan permisos).
 
 **Cómo:**
-- `PermisosService.permisosDe('<slug>')` para mostrar/ocultar Nuevo / Editar / Eliminar / Imprimir / Exportar.
+- `PermisosService.permisosDe('<slug>')` para **deshabilitar** (no ocultar) Nuevo / Editar / Eliminar / Imprimir / Exportar cuando falta `alta` / `cambio` / `baja` / `imprimir` / `exportar`. Una sola regla para los cinco botones (decisión 2026-10-07, Paso C); cada método repite la guarda (`if (!this.permisos().alta) return;`).
 - Confirmación de borrado con un **ConfirmDialog compartido** en `shared/` (no `window.confirm`). **Todavía no existe**: se crea una vez y lo usan todos.
 - Mensajes de error: mostrar `error.message` del backend (ya viene limpio, ver D2/D3) en el toast existente (`shared/toast`).
 - Ruta, slug e ícono según `contrato-rutas.md`.

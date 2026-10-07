@@ -80,21 +80,26 @@ ORDER BY 1;
 -- rota (un hijo apuntando a un padre que no existe) - en teoria imposible
 -- si los 4 scripts corrieron en orden sobre una BD con las FK activas,
 -- pero se deja como chequeo independiente de esa suposicion.
+--
+-- TIPOS (Paso A7): en un UNION ALL Oracle exige que cada columna tenga el
+-- mismo tipo en TODAS las ramas (si no: ORA-01790). Por eso IdHuerfano es
+-- siempre VARCHAR2: TO_CHAR(id) en claves simples, y las claves
+-- compuestas concatenadas con '|' en el orden de su PK.
 -- =====================================================================
-SELECT 'DEPARTAMENTO.IdEmpresa -> EMPRESA' AS Chequeo, d.IdDepartamento AS IdHuerfano
+SELECT 'DEPARTAMENTO.IdEmpresa -> EMPRESA' AS Chequeo, TO_CHAR(d.IdDepartamento) AS IdHuerfano
 FROM DEPARTAMENTO d
 WHERE d.IdEmpresa IS NOT NULL
   AND NOT EXISTS (SELECT 1 FROM EMPRESA e WHERE e.IdEmpresa = d.IdEmpresa)
 UNION ALL
-SELECT 'FLUJO_STATUS_EMPLEADO.IdStatusActual -> STATUS_EMPLEADO', f.IdStatusActual
+SELECT 'FLUJO_STATUS_EMPLEADO.IdStatusActual -> STATUS_EMPLEADO', TO_CHAR(f.IdStatusActual) || '|' || TO_CHAR(f.IdStatusNuevo)
 FROM FLUJO_STATUS_EMPLEADO f
 WHERE NOT EXISTS (SELECT 1 FROM STATUS_EMPLEADO s WHERE s.IdStatusEmpleado = f.IdStatusActual)
 UNION ALL
-SELECT 'FLUJO_STATUS_EMPLEADO.IdStatusNuevo -> STATUS_EMPLEADO', f.IdStatusNuevo
+SELECT 'FLUJO_STATUS_EMPLEADO.IdStatusNuevo -> STATUS_EMPLEADO', TO_CHAR(f.IdStatusActual) || '|' || TO_CHAR(f.IdStatusNuevo)
 FROM FLUJO_STATUS_EMPLEADO f
 WHERE NOT EXISTS (SELECT 1 FROM STATUS_EMPLEADO s WHERE s.IdStatusEmpleado = f.IdStatusNuevo)
 UNION ALL
-SELECT 'PUESTO.IdDepartamento -> DEPARTAMENTO', p.IdPuesto
+SELECT 'PUESTO.IdDepartamento -> DEPARTAMENTO', TO_CHAR(p.IdPuesto)
 FROM PUESTO p
 WHERE NOT EXISTS (SELECT 1 FROM DEPARTAMENTO d WHERE d.IdDepartamento = p.IdDepartamento)
 UNION ALL
@@ -105,51 +110,51 @@ UNION ALL
 -- dependen las subconsultas de 03 (que GENERO tenga exactamente un
 -- 'Masculino' y un 'Femenino', y que SUCURSAL tenga al menos una fila)
 -- ANTES de insertar, no despues.
-SELECT 'PERSONA.IdGenero -> GENERO', pe.IdPersona
+SELECT 'PERSONA.IdGenero -> GENERO', TO_CHAR(pe.IdPersona)
 FROM PERSONA pe
 WHERE NOT EXISTS (SELECT 1 FROM GENERO g WHERE g.IdGenero = pe.IdGenero)
 UNION ALL
-SELECT 'PERSONA.IdEstadoCivil -> ESTADO_CIVIL', pe.IdPersona
+SELECT 'PERSONA.IdEstadoCivil -> ESTADO_CIVIL', TO_CHAR(pe.IdPersona)
 FROM PERSONA pe
 WHERE NOT EXISTS (SELECT 1 FROM ESTADO_CIVIL ec WHERE ec.IdEstadoCivil = pe.IdEstadoCivil)
 UNION ALL
-SELECT 'DOCUMENTO_PERSONA.IdTipoDocumento -> TIPO_DOCUMENTO', dp.IdPersona
+SELECT 'DOCUMENTO_PERSONA.IdTipoDocumento -> TIPO_DOCUMENTO', TO_CHAR(dp.IdTipoDocumento) || '|' || TO_CHAR(dp.IdPersona)
 FROM DOCUMENTO_PERSONA dp
 WHERE NOT EXISTS (SELECT 1 FROM TIPO_DOCUMENTO td WHERE td.IdTipoDocumento = dp.IdTipoDocumento)
 UNION ALL
-SELECT 'DOCUMENTO_PERSONA.IdPersona -> PERSONA', dp.IdPersona
+SELECT 'DOCUMENTO_PERSONA.IdPersona -> PERSONA', TO_CHAR(dp.IdTipoDocumento) || '|' || TO_CHAR(dp.IdPersona)
 FROM DOCUMENTO_PERSONA dp
 WHERE NOT EXISTS (SELECT 1 FROM PERSONA pe WHERE pe.IdPersona = dp.IdPersona)
 UNION ALL
-SELECT 'EMPLEADO.IdPersona -> PERSONA', em.IdEmpleado
+SELECT 'EMPLEADO.IdPersona -> PERSONA', TO_CHAR(em.IdEmpleado)
 FROM EMPLEADO em
 WHERE NOT EXISTS (SELECT 1 FROM PERSONA pe WHERE pe.IdPersona = em.IdPersona)
 UNION ALL
-SELECT 'EMPLEADO.IdSucursal -> SUCURSAL', em.IdEmpleado
+SELECT 'EMPLEADO.IdSucursal -> SUCURSAL', TO_CHAR(em.IdEmpleado)
 FROM EMPLEADO em
 WHERE NOT EXISTS (SELECT 1 FROM SUCURSAL su WHERE su.IdSucursal = em.IdSucursal)
 UNION ALL
-SELECT 'EMPLEADO.IdPuesto -> PUESTO', em.IdEmpleado
+SELECT 'EMPLEADO.IdPuesto -> PUESTO', TO_CHAR(em.IdEmpleado)
 FROM EMPLEADO em
 WHERE NOT EXISTS (SELECT 1 FROM PUESTO p WHERE p.IdPuesto = em.IdPuesto)
 UNION ALL
-SELECT 'EMPLEADO.IdStatusEmpleado -> STATUS_EMPLEADO', em.IdEmpleado
+SELECT 'EMPLEADO.IdStatusEmpleado -> STATUS_EMPLEADO', TO_CHAR(em.IdEmpleado)
 FROM EMPLEADO em
 WHERE NOT EXISTS (SELECT 1 FROM STATUS_EMPLEADO s WHERE s.IdStatusEmpleado = em.IdStatusEmpleado)
 UNION ALL
-SELECT 'CUENTA_BANCARIA_EMPLEADO.IdBanco -> BANCO', cb.IdCuentaBancaria
+SELECT 'CUENTA_BANCARIA_EMPLEADO.IdBanco -> BANCO', TO_CHAR(cb.IdCuentaBancaria)
 FROM CUENTA_BANCARIA_EMPLEADO cb
 WHERE NOT EXISTS (SELECT 1 FROM BANCO b WHERE b.IdBanco = cb.IdBanco)
 UNION ALL
-SELECT 'CUENTA_BANCARIA_EMPLEADO.IdEmpleado -> EMPLEADO', cb.IdCuentaBancaria
+SELECT 'CUENTA_BANCARIA_EMPLEADO.IdEmpleado -> EMPLEADO', TO_CHAR(cb.IdCuentaBancaria)
 FROM CUENTA_BANCARIA_EMPLEADO cb
 WHERE NOT EXISTS (SELECT 1 FROM EMPLEADO em WHERE em.IdEmpleado = cb.IdEmpleado)
 UNION ALL
-SELECT 'INASISTENCIA.IdEmpleado -> EMPLEADO', i.IdInasistencia
+SELECT 'INASISTENCIA.IdEmpleado -> EMPLEADO', TO_CHAR(i.IdInasistencia)
 FROM INASISTENCIA i
 WHERE NOT EXISTS (SELECT 1 FROM EMPLEADO em WHERE em.IdEmpleado = i.IdEmpleado)
 UNION ALL
-SELECT 'PLANILLA_CABECERA (Anio,Mes) -> PERIODO_PLANILLA', TO_CHAR(pc.Anio) || '-' || TO_CHAR(pc.Mes)
+SELECT 'PLANILLA_CABECERA (Anio,Mes) -> PERIODO_PLANILLA', TO_CHAR(pc.Anio) || '|' || TO_CHAR(pc.Mes)
 FROM PLANILLA_CABECERA pc
 WHERE NOT EXISTS (SELECT 1 FROM PERIODO_PLANILLA pp WHERE pp.Anio = pc.Anio AND pp.Mes = pc.Mes)
 UNION ALL
@@ -183,41 +188,45 @@ WHERE NOT EXISTS (SELECT 1 FROM PUESTO p WHERE p.IdPuesto = l.IdPuesto);
 -- 239*65536 + 191*256 + 189 = 15712189) - funciona solo si el
 -- characterset de la BD es AL32UTF8/UTF8; se deja como alternativa por si
 -- UNISTR no estuviera disponible en algun cliente.
+--
+-- TIPOS (Paso A7): misma regla que la SECCION 2 - Id es VARCHAR2 en todas
+-- las ramas (TO_CHAR, y claves compuestas unidas con '|'); Valor ya es
+-- VARCHAR2 en todas (columnas de texto VARCHAR2 verificadas).
 -- =====================================================================
-SELECT 'ESTADO_CIVIL.Nombre' AS Columna, IdEstadoCivil AS Id, Nombre AS Valor
+SELECT 'ESTADO_CIVIL.Nombre' AS Columna, TO_CHAR(IdEstadoCivil) AS Id, Nombre AS Valor
 FROM ESTADO_CIVIL WHERE INSTR(Nombre, UNISTR('\FFFD')) > 0
 UNION ALL
-SELECT 'STATUS_EMPLEADO.Nombre', IdStatusEmpleado, Nombre
+SELECT 'STATUS_EMPLEADO.Nombre', TO_CHAR(IdStatusEmpleado), Nombre
 FROM STATUS_EMPLEADO WHERE INSTR(Nombre, UNISTR('\FFFD')) > 0
 UNION ALL
-SELECT 'FLUJO_STATUS_EMPLEADO.NombreEvento', IdStatusActual, NombreEvento
+SELECT 'FLUJO_STATUS_EMPLEADO.NombreEvento', TO_CHAR(IdStatusActual) || '|' || TO_CHAR(IdStatusNuevo), NombreEvento
 FROM FLUJO_STATUS_EMPLEADO WHERE INSTR(NombreEvento, UNISTR('\FFFD')) > 0
 UNION ALL
-SELECT 'TIPO_DOCUMENTO.Nombre', IdTipoDocumento, Nombre
+SELECT 'TIPO_DOCUMENTO.Nombre', TO_CHAR(IdTipoDocumento), Nombre
 FROM TIPO_DOCUMENTO WHERE INSTR(Nombre, UNISTR('\FFFD')) > 0
 UNION ALL
-SELECT 'BANCO.Nombre', IdBanco, Nombre
+SELECT 'BANCO.Nombre', TO_CHAR(IdBanco), Nombre
 FROM BANCO WHERE INSTR(Nombre, UNISTR('\FFFD')) > 0
 UNION ALL
-SELECT 'DEPARTAMENTO.Nombre', IdDepartamento, Nombre
+SELECT 'DEPARTAMENTO.Nombre', TO_CHAR(IdDepartamento), Nombre
 FROM DEPARTAMENTO WHERE INSTR(Nombre, UNISTR('\FFFD')) > 0
 UNION ALL
-SELECT 'PUESTO.Nombre', IdPuesto, Nombre
+SELECT 'PUESTO.Nombre', TO_CHAR(IdPuesto), Nombre
 FROM PUESTO WHERE INSTR(Nombre, UNISTR('\FFFD')) > 0
 UNION ALL
-SELECT 'PERSONA.Nombre', IdPersona, Nombre
+SELECT 'PERSONA.Nombre', TO_CHAR(IdPersona), Nombre
 FROM PERSONA WHERE INSTR(Nombre, UNISTR('\FFFD')) > 0
 UNION ALL
-SELECT 'PERSONA.Apellido', IdPersona, Apellido
+SELECT 'PERSONA.Apellido', TO_CHAR(IdPersona), Apellido
 FROM PERSONA WHERE INSTR(Apellido, UNISTR('\FFFD')) > 0
 UNION ALL
-SELECT 'PERSONA.Direccion', IdPersona, Direccion
+SELECT 'PERSONA.Direccion', TO_CHAR(IdPersona), Direccion
 FROM PERSONA WHERE INSTR(Direccion, UNISTR('\FFFD')) > 0
 UNION ALL
-SELECT 'PERSONA.CorreoElectronico', IdPersona, CorreoElectronico
+SELECT 'PERSONA.CorreoElectronico', TO_CHAR(IdPersona), CorreoElectronico
 FROM PERSONA WHERE CorreoElectronico IS NOT NULL AND INSTR(CorreoElectronico, UNISTR('\FFFD')) > 0
 UNION ALL
-SELECT 'DOCUMENTO_PERSONA.NoDocumento', IdPersona, NoDocumento
+SELECT 'DOCUMENTO_PERSONA.NoDocumento', TO_CHAR(IdTipoDocumento) || '|' || TO_CHAR(IdPersona), NoDocumento
 FROM DOCUMENTO_PERSONA WHERE NoDocumento IS NOT NULL AND INSTR(NoDocumento, UNISTR('\FFFD')) > 0
 UNION ALL
 SELECT 'CUENTA_BANCARIA_EMPLEADO.NumeroDeCuenta', TO_CHAR(IdCuentaBancaria), NumeroDeCuenta

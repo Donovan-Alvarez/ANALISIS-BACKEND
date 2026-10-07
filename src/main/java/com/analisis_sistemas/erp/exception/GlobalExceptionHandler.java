@@ -34,6 +34,10 @@ import java.util.Map;
  * SI estan pensados para el usuario final (p. ej. "No se puede eliminar la
  * empresa: tiene sucursales asociadas."), asi que se exponen tal cual, ya
  * limpios del prefijo "ORA-XXXXX:" y de las lineas ORA-06512 de traza PL/SQL.
+ * <p>
+ * Errores de integridad comunes (Fase 2, Paso B) con mensaje fijo, sin
+ * exponer el detalle de Oracle (nombre de constraint, esquema, columna):
+ * ORA-00001 -> 409, ORA-02291 / ORA-12899 / ORA-01400 -> 400.
  */
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -47,6 +51,16 @@ public class GlobalExceptionHandler {
 
     private static final int ORA_APPLICATION_ERROR_MIN = 20000;
     private static final int ORA_APPLICATION_ERROR_MAX = 20999;
+
+    private static final int ORA_UNIQUE_VIOLADO = 1;
+    private static final int ORA_PADRE_NO_EXISTE = 2291;
+    private static final int ORA_VALOR_DEMASIADO_LARGO = 12899;
+    private static final int ORA_NULL_EN_OBLIGATORIO = 1400;
+
+    private static final String MENSAJE_DUPLICADO = "Ya existe un registro con los mismos datos.";
+    private static final String MENSAJE_PADRE_NO_EXISTE = "El registro relacionado seleccionado no existe.";
+    private static final String MENSAJE_VALOR_DEMASIADO_LARGO = "Un valor excede la longitud permitida.";
+    private static final String MENSAJE_DATO_OBLIGATORIO = "Falta un dato obligatorio.";
 
     @ExceptionHandler(ResponseStatusException.class)
     public ResponseEntity<Map<String, Object>> handleResponseStatus(ResponseStatusException ex,
@@ -84,6 +98,13 @@ public class GlobalExceptionHandler {
             return construirRespuesta(HttpStatus.CONFLICT, limpiarMensajeOracle(sqlEx.getMessage()), request, null);
         }
 
+        if (sqlEx != null) {
+            ResponseEntity<Map<String, Object>> respuesta = mapearErrorDeIntegridad(sqlEx, request);
+            if (respuesta != null) {
+                return respuesta;
+            }
+        }
+
         log.error("Error de acceso a datos no controlado en {}", request.getRequestURI(), ex);
         return construirRespuesta(HttpStatus.CONFLICT, MENSAJE_DATOS_RELACIONADOS, request, null);
     }
@@ -110,6 +131,35 @@ public class GlobalExceptionHandler {
 
     private boolean esErrorDeNegocioOracle(int codigoError) {
         return codigoError >= ORA_APPLICATION_ERROR_MIN && codigoError <= ORA_APPLICATION_ERROR_MAX;
+    }
+
+    private ResponseEntity<Map<String, Object>> mapearErrorDeIntegridad(SQLException sqlEx,
+                                                                          HttpServletRequest request) {
+        HttpStatus status;
+        String mensaje;
+        switch (sqlEx.getErrorCode()) {
+            case ORA_UNIQUE_VIOLADO -> {
+                status = HttpStatus.CONFLICT;
+                mensaje = MENSAJE_DUPLICADO;
+            }
+            case ORA_PADRE_NO_EXISTE -> {
+                status = HttpStatus.BAD_REQUEST;
+                mensaje = MENSAJE_PADRE_NO_EXISTE;
+            }
+            case ORA_VALOR_DEMASIADO_LARGO -> {
+                status = HttpStatus.BAD_REQUEST;
+                mensaje = MENSAJE_VALOR_DEMASIADO_LARGO;
+            }
+            case ORA_NULL_EN_OBLIGATORIO -> {
+                status = HttpStatus.BAD_REQUEST;
+                mensaje = MENSAJE_DATO_OBLIGATORIO;
+            }
+            default -> {
+                return null;
+            }
+        }
+        log.warn("Error de integridad de base de datos en {}: {}", request.getRequestURI(), sqlEx.getMessage());
+        return construirRespuesta(status, mensaje, request, null);
     }
 
     private SQLException extraerSqlException(Throwable ex) {

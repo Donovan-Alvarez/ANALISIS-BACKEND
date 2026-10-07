@@ -7,6 +7,7 @@
 02_fase2_seed_catalogos.sql
 03_fase2_seed_personas_empleados.sql
 04_fase2_rbac.sql  (independiente de 01-03; MODULO/MENU/OPCION/ROLE_OPCION — solo con aprobación)
+05_fase2_endurecimiento.sql  (UNIQUE sobre OPCION.Pagina + triggers de baja de los catálogos de Planilla)
 99_fase2_verificacion.sql  (solo lectura, al final, para confirmar que todo quedó bien)
 ```
 
@@ -26,6 +27,17 @@
 > aprobado explícitamente, porque toca una tabla compartida con Fase 1
 > (`ROLE_OPCION`, `OPCION`, etc. son de todo el sistema, no solo de
 > Planilla).
+>
+> `05_fase2_endurecimiento.sql` hace dos cosas: agrega el `UNIQUE` sobre
+> `OPCION.Pagina` (`UQ_OPCION_PAGINA`, para que no vuelva a haber slugs
+> duplicados) y crea los triggers `BEFORE DELETE`
+> (`TRG_<TABLA>_BAJA_VALIDA`) sobre los catálogos de Planilla, que impiden
+> dar de baja un registro que todavía está en uso y devuelven un mensaje
+> claro para el usuario. No toca datos y es re-ejecutable.
+>
+> **Si repites `01`, tienes que repetir `05`** (después de `02`/`03`/`04`):
+> el `DROP TABLE ... CASCADE CONSTRAINTS` de `01` también borra los
+> triggers de baja.
 
 ## Cómo ejecutarlos: `run-sql.sh`
 

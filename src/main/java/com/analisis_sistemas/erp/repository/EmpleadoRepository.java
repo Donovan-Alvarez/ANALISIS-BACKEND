@@ -12,6 +12,7 @@ import org.springframework.stereotype.Repository;
 
 import java.math.BigDecimal;
 import java.sql.Date;
+import java.sql.Timestamp;
 import java.sql.Types;
 import java.util.List;
 import java.util.Map;
@@ -90,7 +91,9 @@ public class EmpleadoRepository {
                         new SqlParameter("P_DESCUENTOIGSS", Types.NUMERIC),
                         new SqlParameter("P_DESCUENTOISR", Types.NUMERIC),
                         new SqlParameter("P_DESCUENTOINASISTENCIAS", Types.NUMERIC),
-                        new SqlParameter("P_FECHACREACION", Types.DATE),
+                        // Auditoria como TIMESTAMP: con DATE se perdia la hora
+                        // y todas las altas quedaban a medianoche (D1).
+                        new SqlParameter("P_FECHACREACION", Types.TIMESTAMP),
                         new SqlParameter("P_USUARIOCREACION", Types.VARCHAR),
                         new SqlOutParameter("P_IDEMPLEADO", Types.NUMERIC));
 
@@ -110,7 +113,7 @@ public class EmpleadoRepository {
                         new SqlParameter("P_DESCUENTOIGSS", Types.NUMERIC),
                         new SqlParameter("P_DESCUENTOISR", Types.NUMERIC),
                         new SqlParameter("P_DESCUENTOINASISTENCIAS", Types.NUMERIC),
-                        new SqlParameter("P_FECHAMODIFICACION", Types.DATE),
+                        new SqlParameter("P_FECHAMODIFICACION", Types.TIMESTAMP),
                         new SqlParameter("P_USUARIOMODIFICACION", Types.VARCHAR));
 
         this.callEliminar = new SimpleJdbcCall(jdbcTemplate)
@@ -180,7 +183,7 @@ public class EmpleadoRepository {
                 .addValue("P_DESCUENTOIGSS", empleado.getDescuentoIgss())
                 .addValue("P_DESCUENTOISR", empleado.getDescuentoIsr())
                 .addValue("P_DESCUENTOINASISTENCIAS", empleado.getDescuentoInasistencias())
-                .addValue("P_FECHACREACION", Date.valueOf(empleado.getFechaCreacion().toLocalDate()))
+                .addValue("P_FECHACREACION", Timestamp.valueOf(empleado.getFechaCreacion()))
                 .addValue("P_USUARIOCREACION", empleado.getUsuarioCreacion());
 
         Map<String, Object> resultado = callInsertar.execute(params);
@@ -207,7 +210,7 @@ public class EmpleadoRepository {
                 .addValue("P_DESCUENTOIGSS", empleado.getDescuentoIgss())
                 .addValue("P_DESCUENTOISR", empleado.getDescuentoIsr())
                 .addValue("P_DESCUENTOINASISTENCIAS", empleado.getDescuentoInasistencias())
-                .addValue("P_FECHAMODIFICACION", Date.valueOf(empleado.getFechaModificacion().toLocalDate()))
+                .addValue("P_FECHAMODIFICACION", Timestamp.valueOf(empleado.getFechaModificacion()))
                 .addValue("P_USUARIOMODIFICACION", empleado.getUsuarioModificacion());
 
         callActualizar.execute(params);

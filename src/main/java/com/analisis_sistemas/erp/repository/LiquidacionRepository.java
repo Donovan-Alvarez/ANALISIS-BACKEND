@@ -10,8 +10,10 @@ import org.springframework.jdbc.core.simple.SimpleJdbcCall;
 import org.springframework.stereotype.Repository;
 
 import java.sql.Date;
+import java.sql.Timestamp;
 import java.sql.Types;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -62,7 +64,9 @@ public class LiquidacionRepository {
                         new SqlParameter("P_FECHAEGRESO", Types.DATE),
                         new SqlParameter("P_FECHALIQUIDACION", Types.DATE),
                         new SqlParameter("P_MOTIVOEGRESO", Types.VARCHAR),
-                        new SqlParameter("P_FECHACREACION", Types.DATE),
+                        // Auditoria como TIMESTAMP, no DATE: si no, la hora se
+                        // pierde y todo queda a medianoche (D1).
+                        new SqlParameter("P_FECHACREACION", Types.TIMESTAMP),
                         new SqlParameter("P_USUARIOCREACION", Types.VARCHAR),
                         new SqlOutParameter("P_IDLIQUIDACION", Types.NUMERIC));
     }
@@ -97,14 +101,16 @@ public class LiquidacionRepository {
      * @return el id de la liquidacion creada
      */
     public Integer calcular(Integer idEmpleado, LocalDate fechaEgreso, LocalDate fechaLiquidacion,
-                             String motivoEgreso, LocalDate fechaCreacion, String usuarioCreacion) {
+                             String motivoEgreso, LocalDateTime fechaCreacion, String usuarioCreacion) {
 
+        // Las fechas del negocio (egreso, liquidacion) son LocalDate: son dias,
+        // no instantes. La de auditoria si lleva hora (D1).
         MapSqlParameterSource params = new MapSqlParameterSource()
                 .addValue("P_IDEMPLEADO", idEmpleado)
                 .addValue("P_FECHAEGRESO", Date.valueOf(fechaEgreso))
                 .addValue("P_FECHALIQUIDACION", Date.valueOf(fechaLiquidacion))
                 .addValue("P_MOTIVOEGRESO", motivoEgreso)
-                .addValue("P_FECHACREACION", Date.valueOf(fechaCreacion))
+                .addValue("P_FECHACREACION", Timestamp.valueOf(fechaCreacion))
                 .addValue("P_USUARIOCREACION", usuarioCreacion);
 
         Map<String, Object> resultado = callCalcular.execute(params);

@@ -14,8 +14,9 @@
    por FUNCTION que devuelve SYS_REFCURSOR. En Java no queda ni un
    SELECT embebido.
 
-   Rango de errores: -20200 a -20299, para no chocar con los que ya
-   usan los scripts del equipo (-20100 en 03, -20112 en 06).
+   Rango de errores: -20120 a -20139, el que asigna D8 de
+   docs/fase2/decisiones-arquitectura.md a Bryan (empleados, liquidacion).
+   Usados: -20120 a -20127 en EMPLEADO, -20130 a -20133 en LIQUIDACION.
    ================================================================ */
 
 -- SQL*Plus corta las sentencias en lineas en blanco si no se le indica
@@ -45,7 +46,7 @@ IS
 BEGIN
     IF p_SueldoBase < 0 OR p_BonificacionDecreto < 0 OR p_OtrosIngresos < 0
        OR p_DescuentoIgss < 0 OR p_DescuentoIsr < 0 OR p_DescuentoInasistencias < 0 THEN
-        RAISE_APPLICATION_ERROR(-20200,
+        RAISE_APPLICATION_ERROR(-20120,
             'Los montos de ingresos y descuentos no pueden ser negativos.');
     END IF;
 END;
@@ -121,7 +122,7 @@ CREATE OR REPLACE PROCEDURE PR_EMPLEADO_INSERTAR(
     p_DescuentoIgss              IN  NUMBER,
     p_DescuentoIsr               IN  NUMBER,
     p_DescuentoInasistencias     IN  NUMBER,
-    p_FechaCreacion              IN  DATE,
+    p_FechaCreacion              IN  TIMESTAMP,
     p_UsuarioCreacion            IN  VARCHAR2,
     p_IdEmpleado                 OUT NUMBER
 )
@@ -131,7 +132,7 @@ BEGIN
         p_IngresoOtrosIngresos, p_DescuentoIgss, p_DescuentoIsr, p_DescuentoInasistencias);
 
     IF p_FechaContratacion > SYSDATE THEN
-        RAISE_APPLICATION_ERROR(-20201,
+        RAISE_APPLICATION_ERROR(-20121,
             'La fecha de contratacion no puede ser futura.');
     END IF;
 
@@ -167,7 +168,7 @@ CREATE OR REPLACE PROCEDURE PR_EMPLEADO_ACTUALIZAR(
     p_DescuentoIgss              IN NUMBER,
     p_DescuentoIsr               IN NUMBER,
     p_DescuentoInasistencias     IN NUMBER,
-    p_FechaModificacion          IN DATE,
+    p_FechaModificacion          IN TIMESTAMP,
     p_UsuarioModificacion        IN VARCHAR2
 )
 IS
@@ -178,7 +179,7 @@ BEGIN
 
     IF FN_EMPLEADO_TRANSICION_VALIDA(p_IdEmpleado, p_IdStatusEmpleado) = 0 THEN
         v_Transicion := FN_EMPLEADO_DESCRIBIR_TRANSICION(p_IdEmpleado, p_IdStatusEmpleado);
-        RAISE_APPLICATION_ERROR(-20202,
+        RAISE_APPLICATION_ERROR(-20122,
             'El cambio de status ' || NVL(v_Transicion, 'solicitado') ||
             ' no esta permitido en el flujo de status configurado.');
     END IF;
@@ -200,40 +201,57 @@ BEGIN
      WHERE IdEmpleado = p_IdEmpleado;
 
     IF SQL%ROWCOUNT = 0 THEN
-        RAISE_APPLICATION_ERROR(-20203, 'No existe el empleado que se intenta modificar.');
+        RAISE_APPLICATION_ERROR(-20123, 'No existe el empleado que se intenta modificar.');
+    END IF;
+END;
+/
+
+/* Baja con registros relacionados: el bloqueo vive en un trigger
+   BEFORE DELETE, siguiendo el patron TRG_<TABLA>_BAJA_VALIDA de D2.
+   Asi tambien protege un DELETE hecho por SQL directo, no solo el que
+   pasa por el procedimiento. El mensaje dice cuantos hijos hay, como los
+   triggers de los catalogos en 05_fase2_endurecimiento.sql.
+
+   OJO: si se vuelve a correr 01_fase2_ddl.sql, el DROP ... CASCADE borra
+   este trigger y hay que volver a correr este script. */
+CREATE OR REPLACE TRIGGER TRG_EMPLEADO_BAJA_VALIDA
+BEFORE DELETE ON EMPLEADO
+FOR EACH ROW
+DECLARE
+    v_Liquidaciones PLS_INTEGER;
+    v_Inasistencias PLS_INTEGER;
+    v_Cuentas       PLS_INTEGER;
+BEGIN
+    SELECT COUNT(*) INTO v_Liquidaciones FROM LIQUIDACION WHERE IdEmpleado = :OLD.IdEmpleado;
+    IF v_Liquidaciones > 0 THEN
+        RAISE_APPLICATION_ERROR(-20124,
+            'No se puede eliminar el empleado: ya tiene una liquidacion registrada.');
+    END IF;
+
+    SELECT COUNT(*) INTO v_Inasistencias FROM INASISTENCIA WHERE IdEmpleado = :OLD.IdEmpleado;
+    IF v_Inasistencias > 0 THEN
+        RAISE_APPLICATION_ERROR(-20125,
+            'No se puede eliminar el empleado: tiene ' || v_Inasistencias ||
+            ' inasistencia(s) registrada(s).');
+    END IF;
+
+    SELECT COUNT(*) INTO v_Cuentas FROM CUENTA_BANCARIA_EMPLEADO WHERE IdEmpleado = :OLD.IdEmpleado;
+    IF v_Cuentas > 0 THEN
+        RAISE_APPLICATION_ERROR(-20126,
+            'No se puede eliminar el empleado: tiene ' || v_Cuentas ||
+            ' cuenta(s) bancaria(s) asociada(s).');
     END IF;
 END;
 /
 
 CREATE OR REPLACE PROCEDURE PR_EMPLEADO_ELIMINAR(p_IdEmpleado IN NUMBER)
 IS
-    v_Liquidaciones PLS_INTEGER;
-    v_Inasistencias PLS_INTEGER;
-    v_Cuentas       PLS_INTEGER;
 BEGIN
-    -- Mensajes claros en vez de dejar que reviente la FK con ORA-02292.
-    SELECT COUNT(*) INTO v_Liquidaciones FROM LIQUIDACION WHERE IdEmpleado = p_IdEmpleado;
-    IF v_Liquidaciones > 0 THEN
-        RAISE_APPLICATION_ERROR(-20204,
-            'No se puede eliminar el empleado: ya tiene una liquidacion registrada.');
-    END IF;
-
-    SELECT COUNT(*) INTO v_Inasistencias FROM INASISTENCIA WHERE IdEmpleado = p_IdEmpleado;
-    IF v_Inasistencias > 0 THEN
-        RAISE_APPLICATION_ERROR(-20205,
-            'No se puede eliminar el empleado: tiene inasistencias registradas.');
-    END IF;
-
-    SELECT COUNT(*) INTO v_Cuentas FROM CUENTA_BANCARIA_EMPLEADO WHERE IdEmpleado = p_IdEmpleado;
-    IF v_Cuentas > 0 THEN
-        RAISE_APPLICATION_ERROR(-20206,
-            'No se puede eliminar el empleado: tiene cuentas bancarias asociadas.');
-    END IF;
-
+    -- Las validaciones de hijos las hace TRG_EMPLEADO_BAJA_VALIDA.
     DELETE FROM EMPLEADO WHERE IdEmpleado = p_IdEmpleado;
 
     IF SQL%ROWCOUNT = 0 THEN
-        RAISE_APPLICATION_ERROR(-20207, 'No existe el empleado que se intenta eliminar.');
+        RAISE_APPLICATION_ERROR(-20127, 'No existe el empleado que se intenta eliminar.');
     END IF;
 END;
 /
@@ -372,7 +390,7 @@ CREATE OR REPLACE PROCEDURE PR_LIQUIDACION_CALCULAR(
     p_FechaEgreso      IN  DATE,
     p_FechaLiquidacion IN  DATE,
     p_MotivoEgreso     IN  VARCHAR2,
-    p_FechaCreacion    IN  DATE,
+    p_FechaCreacion    IN  TIMESTAMP,
     p_UsuarioCreacion  IN  VARCHAR2,
     p_IdLiquidacion    OUT NUMBER
 )
@@ -406,23 +424,23 @@ BEGIN
          WHERE IdEmpleado = p_IdEmpleado;
     EXCEPTION
         WHEN NO_DATA_FOUND THEN
-            RAISE_APPLICATION_ERROR(-20210, 'No existe el empleado que se intenta liquidar.');
+            RAISE_APPLICATION_ERROR(-20130, 'No existe el empleado que se intenta liquidar.');
     END;
 
     -- La liquidacion es historial permanente: una por empleado.
     SELECT COUNT(*) INTO v_YaLiquidado FROM LIQUIDACION WHERE IdEmpleado = p_IdEmpleado;
     IF v_YaLiquidado > 0 THEN
-        RAISE_APPLICATION_ERROR(-20211,
+        RAISE_APPLICATION_ERROR(-20131,
             'Este empleado ya tiene una liquidacion registrada.');
     END IF;
 
     IF p_FechaEgreso < v_FechaContratacion THEN
-        RAISE_APPLICATION_ERROR(-20212,
+        RAISE_APPLICATION_ERROR(-20132,
             'La fecha de egreso no puede ser anterior a la fecha de contratacion.');
     END IF;
 
     IF p_FechaLiquidacion < p_FechaEgreso THEN
-        RAISE_APPLICATION_ERROR(-20213,
+        RAISE_APPLICATION_ERROR(-20133,
             'La fecha de liquidacion no puede ser anterior a la fecha de egreso.');
     END IF;
 

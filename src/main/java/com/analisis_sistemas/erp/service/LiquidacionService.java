@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 /**
@@ -71,7 +72,7 @@ public class LiquidacionService {
                 dto.getFechaEgreso(),
                 dto.getFechaLiquidacion(),
                 dto.getMotivoEgreso().trim(),
-                LocalDate.now(),
+                LocalDateTime.now(),
                 SecurityUtils.getUsuarioAutenticado());
 
         // Se relee para devolver los totales tal como quedaron en la base,

@@ -9,6 +9,7 @@
 04_fase2_rbac.sql  (independiente de 01-03; MODULO/MENU/OPCION/ROLE_OPCION — solo con aprobación)
 05_fase2_endurecimiento.sql  (UNIQUE sobre OPCION.Pagina + triggers de baja de los catálogos de Planilla)
 06_fase2_departamento_empresa_obligatoria.sql  (DEPARTAMENTO.IdEmpresa NOT NULL; en una instalación nueva no hace nada)
+08_fase2_personas_documentos.sql  (Andrea: trigger de baja de PERSONA + garantía de Persona+Tipo único)
 99_fase2_verificacion.sql  (solo lectura, al final, para confirmar que todo quedó bien)
 ```
 

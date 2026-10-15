@@ -131,6 +131,6 @@ Cada dev usa **solo** su rango en `RAISE_APPLICATION_ERROR`, para no chocar. Fas
 | Cristian | inasistencias, calculo-planilla | -20140 .. -20159 | — |
 | Andrés | cuentas-bancarias, reporte-planilla | -20160 .. -20179 | — |
 | Andrea | personas, documentos-persona | -20180 .. -20199 | — |
-| Javier | flujo-status-empleado, boletas-pago | -20200 .. -20219 | — |
+| Javier | flujo-status-empleado, boletas-pago | -20200 .. -20219 | -20200 (mismo status), -20201 (transición inexistente), `08_fase2_javier.sql` |
 
 Al usar un código nuevo, anótalo aquí y en el comentario de cabecera del script.

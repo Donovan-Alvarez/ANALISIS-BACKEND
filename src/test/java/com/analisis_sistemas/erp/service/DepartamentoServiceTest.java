@@ -25,11 +25,6 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-/**
- * Prueba unitaria de las reglas del Service (duplicado por empresa, empresa
- * obligatoria y existente, cambio de empresa con puestos, trim, auditoria D1),
- * con los repositorios simulados: sin base de datos ni contexto Spring.
- */
 @ExtendWith(MockitoExtension.class)
 class DepartamentoServiceTest {
 
@@ -119,7 +114,7 @@ class DepartamentoServiceTest {
         assertThat(guardado.getIdEmpresa()).isEqualTo(SOFTWARE_INC);
         assertThat(guardado.getNombreEmpresa()).isNotEqualTo("nombre falso");
         assertThat(guardado.getFechaCreacion()).isNotNull();
-        assertThat(guardado.getUsuarioCreacion()).isEqualTo("system"); // sin usuario autenticado
+        assertThat(guardado.getUsuarioCreacion()).isEqualTo("system");
         assertThat(guardado.getFechaModificacion()).isNull();
     }
 
@@ -154,7 +149,6 @@ class DepartamentoServiceTest {
         assertThat(enviado.getFechaModificacion()).isNotNull();
         assertThat(enviado.getUsuarioModificacion()).isEqualTo("system");
         assertThat(actualizado.getNombreEmpresa()).isEqualTo("Software Inc.");
-        // Misma empresa: no hace falta contar puestos.
         verify(repository, never()).countPuestos(anyInt());
     }
 

@@ -71,9 +71,6 @@ public class DepartamentoService {
 
         Empresa empresa = buscarEmpresa(dto.getIdEmpresa());
 
-        // Los empleados guardan su sucursal (y con ella su empresa) y su
-        // puesto (empresa via departamento): mover un departamento con
-        // puestos a otra empresa los dejaria inconsistentes.
         if (!Objects.equals(existente.getIdEmpresa(), dto.getIdEmpresa())) {
             int puestos = departamentoRepository.countPuestos(id);
             if (puestos > 0) {
@@ -100,11 +97,6 @@ public class DepartamentoService {
         return toDTO(departamento);
     }
 
-    /**
-     * Si el departamento tiene puestos, TRG_DEPARTAMENTO_BAJA_VALIDA (ORA-20108)
-     * rechaza el DELETE y GlobalExceptionHandler responde 409 con el mensaje
-     * del trigger; aqui no se captura nada (D2).
-     */
     public void delete(Integer id) {
         int filasAfectadas = departamentoRepository.deleteById(id);
         if (filasAfectadas == 0) {
@@ -130,7 +122,6 @@ public class DepartamentoService {
         return dto;
     }
 
-    /** nombreEmpresa es solo de salida: no se copia. */
     private Departamento toEntity(DepartamentoDTO dto) {
         Departamento departamento = new Departamento();
         departamento.setIdDepartamento(dto.getIdDepartamento());

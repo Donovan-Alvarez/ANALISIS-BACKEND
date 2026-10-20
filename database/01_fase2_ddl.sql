@@ -1,53 +1,3 @@
-/*
- * FASE 2 - Modulo de Planilla
- * 01_fase2_ddl.sql
- *
- * DDL puro (16 tablas), traducido desde src/main/resources/sql/Planilla-SQL.sql
- * (MySQL, catedratico) a Oracle 23ai, siguiendo la convencion de
- * database/01-schema-completo.sql (Fase 1):
- *   - PK autoincremental:        NUMBER GENERATED ALWAYS AS IDENTITY
- *   - Fechas de auditoria:       DATE (no TIMESTAMP)
- *   - Nombres de constraints:    PK_<TABLA>, FK_<TABLA>_<TABLA_REFERENCIADA>
- *   - Re-ejecutable:             cada tabla se intenta DROP antes del CREATE,
- *                                 atrapando ORA-00942 (igual que el patron ya
- *                                 usado en 01-schema-completo.sql para
- *                                 TOKEN_RECUPERACION_PASSWORD y SESION).
- *
- * Esta version NO incluye triggers de auditoria: FechaCreacion/UsuarioCreacion
- * y FechaModificacion/UsuarioModificacion se estampan desde el Service de
- * Java (patron GeneroService/SucursalService), igual que en el resto de
- * Fase 1. En los INSERT de seed (02, 03, 04) se usa SYSTIMESTAMP y 'system'.
- *
- * Orden de creacion: respeta las FK (catalogos sin dependencias primero).
- * Orden de DROP: inverso, para no violar FKs al reiniciar.
- *
- * DECISIONES APROBADAS en el Paso A2 (ver docs/fase2/informes/paso-A2-ajustes.md):
- *   - D1: CUENTA_BANCARIA_EMPLEADO.Activa = NUMBER(1) DEFAULT 1 NOT NULL +
- *         CONSTRAINT CK_CUENTA_BANCARIA_EMPLEADO_ACTIVA CHECK (Activa IN (0,1)).
- *   - D2: UNIQUE(Nombre) en ESTADO_CIVIL, STATUS_EMPLEADO, TIPO_DOCUMENTO y
- *         BANCO; ademas UNIQUE compuesto en DEPARTAMENTO (IdEmpresa, Nombre)
- *         y PUESTO (IdDepartamento, Nombre) - verificado contra los seeds de
- *         02_fase2_seed_catalogos.sql, sin duplicados (ver informe).
- *   - Paso E: DEPARTAMENTO.IdEmpresa es NOT NULL (un departamento siempre
- *         pertenece a una empresa). En una BD creada antes de este cambio,
- *         06_fase2_departamento_empresa_obligatoria.sql aplica lo mismo.
- *   - D3: nombres de constraint completos (p. ej.
- *         FK_DOCUMENTO_PERSONA_TIPO_DOCUMENTO, FK_CUENTA_BANCARIA_EMPLEADO_BANCO,
- *         FK_FLUJO_STATUS_EMPLEADO_STATUS_ACTUAL/NUEVO) porque Oracle 23ai
- *         admite identificadores de hasta 128 bytes; Fase 1 los abrevio solo
- *         porque sus nombres de tabla eran cortos. Se corrigieron tambien las
- *         abreviaturas que habian quedado en el borrador anterior
- *         (FLUJOSTATUS, CUENTABANCARIA, PLANILLACAB, PLANILLADET, _TIPO,
- *         _PERS, _STATUS sueltos) para que todas sigan PK_/FK_/UQ_/CK_ + el
- *         nombre completo de la(s) tabla(s) involucradas.
- *
- * NO EJECUTAR sin autorizacion. Este archivo es un borrador.
- */
-
--- =====================================================================
--- DROP (orden inverso a las dependencias), re-ejecutable
--- =====================================================================
-
 BEGIN EXECUTE IMMEDIATE 'DROP TABLE LIQUIDACION CASCADE CONSTRAINTS';
 EXCEPTION WHEN OTHERS THEN IF SQLCODE != -942 THEN RAISE; END IF; END;
 /
@@ -112,12 +62,6 @@ BEGIN EXECUTE IMMEDIATE 'DROP TABLE STATUS_EMPLEADO CASCADE CONSTRAINTS';
 EXCEPTION WHEN OTHERS THEN IF SQLCODE != -942 THEN RAISE; END IF; END;
 /
 
-
--- =====================================================================
--- CREATE (orden que respeta las FK)
--- =====================================================================
-
--- 1) STATUS_EMPLEADO ---------------------------------------------------
 CREATE TABLE STATUS_EMPLEADO (
     IdStatusEmpleado    NUMBER GENERATED ALWAYS AS IDENTITY,
     Nombre              VARCHAR2(50) NOT NULL,
@@ -129,7 +73,6 @@ CREATE TABLE STATUS_EMPLEADO (
     CONSTRAINT UQ_STATUS_EMPLEADO_NOMBRE UNIQUE (Nombre)
 );
 
--- 2) ESTADO_CIVIL --------------------------------------------------------
 CREATE TABLE ESTADO_CIVIL (
     IdEstadoCivil       NUMBER GENERATED ALWAYS AS IDENTITY,
     Nombre              VARCHAR2(50) NOT NULL,
@@ -141,7 +84,6 @@ CREATE TABLE ESTADO_CIVIL (
     CONSTRAINT UQ_ESTADO_CIVIL_NOMBRE UNIQUE (Nombre)
 );
 
--- 3) TIPO_DOCUMENTO --------------------------------------------------------
 CREATE TABLE TIPO_DOCUMENTO (
     IdTipoDocumento     NUMBER GENERATED ALWAYS AS IDENTITY,
     Nombre              VARCHAR2(50) NOT NULL,
@@ -153,7 +95,6 @@ CREATE TABLE TIPO_DOCUMENTO (
     CONSTRAINT UQ_TIPO_DOCUMENTO_NOMBRE UNIQUE (Nombre)
 );
 
--- 4) BANCO ------------------------------------------------------------
 CREATE TABLE BANCO (
     IdBanco             NUMBER GENERATED ALWAYS AS IDENTITY,
     Nombre              VARCHAR2(50) NOT NULL,
@@ -165,7 +106,6 @@ CREATE TABLE BANCO (
     CONSTRAINT UQ_BANCO_NOMBRE UNIQUE (Nombre)
 );
 
--- 5) DEPARTAMENTO (FK -> EMPRESA, de Fase 1) ------------------------------
 CREATE TABLE DEPARTAMENTO (
     IdDepartamento      NUMBER GENERATED ALWAYS AS IDENTITY,
     Nombre              VARCHAR2(50) NOT NULL,
@@ -179,7 +119,6 @@ CREATE TABLE DEPARTAMENTO (
     CONSTRAINT UQ_DEPARTAMENTO_EMPRESA_NOMBRE UNIQUE (IdEmpresa, Nombre)
 );
 
--- 6) FLUJO_STATUS_EMPLEADO (FK -> STATUS_EMPLEADO x2) ---------------------
 CREATE TABLE FLUJO_STATUS_EMPLEADO (
     IdStatusActual      NUMBER NOT NULL,
     IdStatusNuevo       NUMBER NOT NULL,
@@ -193,7 +132,6 @@ CREATE TABLE FLUJO_STATUS_EMPLEADO (
     CONSTRAINT FK_FLUJO_STATUS_EMPLEADO_STATUS_NUEVO  FOREIGN KEY (IdStatusNuevo)  REFERENCES STATUS_EMPLEADO (IdStatusEmpleado)
 );
 
--- 7) PUESTO (FK -> DEPARTAMENTO) ------------------------------------------
 CREATE TABLE PUESTO (
     IdPuesto            NUMBER GENERATED ALWAYS AS IDENTITY,
     Nombre              VARCHAR2(50) NOT NULL,
@@ -207,7 +145,6 @@ CREATE TABLE PUESTO (
     CONSTRAINT UQ_PUESTO_DEPARTAMENTO_NOMBRE UNIQUE (IdDepartamento, Nombre)
 );
 
--- 8) PERSONA (FK -> GENERO, ESTADO_CIVIL; GENERO es de Fase 1) ------------
 CREATE TABLE PERSONA (
     IdPersona           NUMBER GENERATED ALWAYS AS IDENTITY,
     Nombre              VARCHAR2(50) NOT NULL,
@@ -227,7 +164,6 @@ CREATE TABLE PERSONA (
     CONSTRAINT FK_PERSONA_ESTADO_CIVIL FOREIGN KEY (IdEstadoCivil) REFERENCES ESTADO_CIVIL (IdEstadoCivil)
 );
 
--- 9) DOCUMENTO_PERSONA (FK -> TIPO_DOCUMENTO, PERSONA) --------------------
 CREATE TABLE DOCUMENTO_PERSONA (
     IdTipoDocumento     NUMBER NOT NULL,
     IdPersona           NUMBER NOT NULL,
@@ -241,7 +177,6 @@ CREATE TABLE DOCUMENTO_PERSONA (
     CONSTRAINT FK_DOCUMENTO_PERSONA_PERSONA FOREIGN KEY (IdPersona) REFERENCES PERSONA (IdPersona)
 );
 
--- 10) EMPLEADO (FK -> PERSONA, SUCURSAL [Fase 1], PUESTO, STATUS_EMPLEADO) --
 CREATE TABLE EMPLEADO (
     IdEmpleado                  NUMBER GENERATED ALWAYS AS IDENTITY,
     IdPersona                   NUMBER NOT NULL,
@@ -266,13 +201,6 @@ CREATE TABLE EMPLEADO (
     CONSTRAINT FK_EMPLEADO_STATUS_EMPLEADO FOREIGN KEY (IdStatusEmpleado) REFERENCES STATUS_EMPLEADO (IdStatusEmpleado)
 );
 
--- 11) CUENTA_BANCARIA_EMPLEADO (FK -> BANCO, EMPLEADO) --------------------
--- DECISION D1 (aprobada): "Activa char not null" (MySQL) pasa a
--- NUMBER(1) DEFAULT 1 NOT NULL, igual que Utilizado en
--- TOKEN_RECUPERACION_PASSWORD (Fase 1), mas un CHECK explicito que
--- restringe el dominio a 0/1 (Fase 1 no lo tiene en Utilizado, pero aqui
--- se agrega por pedido explicito de este paso). Los INSERT de origen ya
--- usan el literal numerico 1 (no '1' comillado), compatible con este tipo.
 CREATE TABLE CUENTA_BANCARIA_EMPLEADO (
     IdCuentaBancaria    NUMBER GENERATED ALWAYS AS IDENTITY,
     IdEmpleado          NUMBER NOT NULL,
@@ -289,7 +217,6 @@ CREATE TABLE CUENTA_BANCARIA_EMPLEADO (
     CONSTRAINT CK_CUENTA_BANCARIA_EMPLEADO_ACTIVA CHECK (Activa IN (0,1))
 );
 
--- 12) INASISTENCIA (FK -> EMPLEADO) --- sin datos de seed en el script original
 CREATE TABLE INASISTENCIA (
     IdInasistencia      NUMBER GENERATED ALWAYS AS IDENTITY,
     IdEmpleado          NUMBER NOT NULL,
@@ -305,7 +232,6 @@ CREATE TABLE INASISTENCIA (
     CONSTRAINT FK_INASISTENCIA_EMPLEADO FOREIGN KEY (IdEmpleado) REFERENCES EMPLEADO (IdEmpleado)
 );
 
--- 13) PERIODO_PLANILLA (PK compuesta Anio+Mes, sin FK) --------------------
 CREATE TABLE PERIODO_PLANILLA (
     Anio                NUMBER NOT NULL,
     Mes                 NUMBER NOT NULL,
@@ -318,7 +244,6 @@ CREATE TABLE PERIODO_PLANILLA (
     CONSTRAINT PK_PERIODO_PLANILLA PRIMARY KEY (Anio, Mes)
 );
 
--- 14) PLANILLA_CABECERA (FK -> PERIODO_PLANILLA) --- sin seed en el original
 CREATE TABLE PLANILLA_CABECERA (
     Anio                NUMBER NOT NULL,
     Mes                 NUMBER NOT NULL,
@@ -334,7 +259,6 @@ CREATE TABLE PLANILLA_CABECERA (
     CONSTRAINT FK_PLANILLA_CABECERA_PERIODO_PLANILLA FOREIGN KEY (Anio, Mes) REFERENCES PERIODO_PLANILLA (Anio, Mes)
 );
 
--- 15) PLANILLA_DETALLE (FK -> PLANILLA_CABECERA, EMPLEADO, PUESTO, STATUS) -
 CREATE TABLE PLANILLA_DETALLE (
     IdPlanillaDetalle           NUMBER GENERATED ALWAYS AS IDENTITY,
     Anio                        NUMBER NOT NULL,
@@ -361,10 +285,6 @@ CREATE TABLE PLANILLA_DETALLE (
     CONSTRAINT FK_PLANILLA_DETALLE_STATUS_EMPLEADO FOREIGN KEY (IdStatusEmpleado) REFERENCES STATUS_EMPLEADO (IdStatusEmpleado)
 );
 
--- 16) LIQUIDACION (FK -> EMPLEADO, PUESTO) --- sin seed en el original -----
--- Nota: la tabla de origen (MySQL) no define FechaModificacion ni
--- UsuarioModificacion para LIQUIDACION (es un registro de cierre, no se
--- edita). Se preserva esa asimetria respecto a las demas tablas.
 CREATE TABLE LIQUIDACION (
     IdLiquidacion               NUMBER GENERATED ALWAYS AS IDENTITY,
     IdEmpleado                  NUMBER NOT NULL,

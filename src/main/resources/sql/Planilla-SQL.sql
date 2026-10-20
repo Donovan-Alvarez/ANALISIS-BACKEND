@@ -1,7 +1,3 @@
-/* 
- * Segunda Fase
- */
-
 use proyectoanalisis;
 
 drop table if exists PLANILLA_DETALLE;

@@ -1,53 +1,5 @@
-/*
- * FASE 2 - Modulo de Planilla
- * 05_fase2_endurecimiento.sql
- *
- * Paso B - cimientos compartidos. Dos cosas:
- *   a) UNIQUE sobre OPCION.Pagina (UQ_OPCION_PAGINA). El backend resuelve
- *      permisos por slug (PermisoAccionInterceptor -> findIdOpcionPorPagina)
- *      y asume que cada Pagina es unica; el Paso A7 encontro un duplicado
- *      ('generos') que ya se limpio con 04b. Esto evita que vuelva a pasar.
- *   b) Triggers BEFORE DELETE (TRG_<TABLA>_BAJA_VALIDA, mismo patron que
- *      Fase 1 en 01-schema-completo.sql) sobre los catalogos de Planilla,
- *      con un mensaje especifico para el usuario. GlobalExceptionHandler ya
- *      expone tal cual los mensajes ORA-20000..20999 (HTTP 409).
- *
- * Codigos usados (rango de Donovan, -20101..-20119). El mas alto de Fase 1
- * es -20032 (01-schema-completo.sql) y -20100 es la guarda de 03; ninguno
- * choca:
- *   -20101  guarda de este archivo: hay OPCION.Pagina duplicadas
- *   -20102  ESTADO_CIVIL     <- PERSONA.IdEstadoCivil
- *   -20103  STATUS_EMPLEADO  <- EMPLEADO.IdStatusEmpleado
- *   -20104  STATUS_EMPLEADO  <- FLUJO_STATUS_EMPLEADO.IdStatusActual / IdStatusNuevo
- *   -20105  STATUS_EMPLEADO  <- PLANILLA_DETALLE.IdStatusEmpleado
- *   -20106  TIPO_DOCUMENTO   <- DOCUMENTO_PERSONA.IdTipoDocumento
- *   -20107  BANCO            <- CUENTA_BANCARIA_EMPLEADO.IdBanco
- *   -20108  DEPARTAMENTO     <- PUESTO.IdDepartamento
- *   -20109  PUESTO           <- EMPLEADO.IdPuesto
- *   -20110  PUESTO           <- PLANILLA_DETALLE.IdPuesto
- *   -20111  PUESTO           <- LIQUIDACION.IdPuesto
- *   (-20112..-20119 libres)
- *
- * Idempotente: el UNIQUE solo se agrega si no existe; los triggers son
- * CREATE OR REPLACE. Se puede correr las veces que haga falta.
- *
- * IMPORTANTE: 01_fase2_ddl.sql hace DROP TABLE ... CASCADE CONSTRAINTS de
- * las 16 tablas, lo que tambien borra estos triggers. Si se vuelve a
- * correr 01, hay que volver a correr este 05 despues de 02/03/04.
- *
- * No toca datos: ningun INSERT/UPDATE/DELETE.
- * Uso: ./database/run-sql.sh database/05_fase2_endurecimiento.sql
- */
-
 SET SERVEROUTPUT ON
 
-
--- =====================================================================
--- a) UNIQUE sobre OPCION.Pagina
--- =====================================================================
-
--- Chequeo previo: debe devolver "no rows selected". Si devuelve filas,
--- el bloque de abajo aborta con ORA-20101 sin crear nada.
 SELECT Pagina, COUNT(*) AS Veces, LISTAGG(IdOpcion, ',') WITHIN GROUP (ORDER BY IdOpcion) AS IdsOpcion
 FROM OPCION
 GROUP BY Pagina
@@ -66,7 +18,6 @@ BEGIN
             ' valor(es) de OPCION.Pagina repetidos. Revisa el SELECT de chequeo y limpialos antes (ver 04b).');
     END IF;
 
-    -- Ya existe con este nombre, o ya hay otra UNIQUE/PK solo sobre PAGINA.
     SELECT COUNT(*) INTO v_Existe
     FROM user_constraints c
     WHERE c.table_name = 'OPCION'
@@ -84,11 +35,6 @@ BEGIN
     END IF;
 END;
 /
-
-
--- =====================================================================
--- b) Triggers BEFORE DELETE con mensaje para el usuario
--- =====================================================================
 
 CREATE OR REPLACE TRIGGER TRG_ESTADO_CIVIL_BAJA_VALIDA
 BEFORE DELETE ON ESTADO_CIVIL
@@ -189,12 +135,6 @@ BEGIN
 END;
 /
 
-
--- =====================================================================
--- Verificacion (solo lectura). Esperado:
---   UQ_OPCION_PAGINA  U  ENABLED
---   6 triggers TRG_*_BAJA_VALIDA de Planilla en ENABLED y VALID
--- =====================================================================
 COLUMN constraint_name FORMAT A25
 COLUMN trigger_name FORMAT A35
 COLUMN table_name FORMAT A20

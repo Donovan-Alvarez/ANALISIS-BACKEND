@@ -25,12 +25,6 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-/**
- * Prueba unitaria de las reglas del Service (duplicado por departamento,
- * departamento existente, mover a otra empresa con empleados, trim,
- * auditoria D1), con los repositorios simulados: sin base de datos ni
- * contexto Spring.
- */
 @ExtendWith(MockitoExtension.class)
 class PuestoServiceTest {
 
@@ -114,7 +108,6 @@ class PuestoServiceTest {
         when(repository.existsByDepartamentoYNombre(5, "Tesorero")).thenReturn(false);
         when(repository.save(any(Puesto.class))).thenAnswer(inv -> inv.getArgument(0));
 
-        // idEmpresa/nombreEmpresa de entrada son de solo lectura: se ignoran.
         PuestoDTO entrada = new PuestoDTO(null, "  Tesorero  ", 5, "otro", SECURITY, "Security");
         PuestoDTO creado = service.create(entrada);
 
@@ -124,7 +117,7 @@ class PuestoServiceTest {
         assertThat(guardado.getNombre()).isEqualTo("Tesorero");
         assertThat(guardado.getIdDepartamento()).isEqualTo(5);
         assertThat(guardado.getFechaCreacion()).isNotNull();
-        assertThat(guardado.getUsuarioCreacion()).isEqualTo("system"); // sin usuario autenticado
+        assertThat(guardado.getUsuarioCreacion()).isEqualTo("system");
         assertThat(guardado.getFechaModificacion()).isNull();
         assertThat(creado.getIdEmpresa()).isEqualTo(SOFTWARE_INC);
         assertThat(creado.getNombreDepartamento()).isEqualTo("Finanzas");

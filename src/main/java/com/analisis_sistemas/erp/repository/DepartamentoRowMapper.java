@@ -8,7 +8,6 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 
-/** Espera las columnas del SELECT con JOIN de DepartamentoRepository (incluida NOMBREEMPRESA). */
 @Component
 public class DepartamentoRowMapper implements RowMapper<Departamento> {
 

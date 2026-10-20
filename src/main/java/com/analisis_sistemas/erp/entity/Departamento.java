@@ -14,7 +14,6 @@ public class Departamento {
     private Integer idDepartamento;
     private String nombre;
     private Integer idEmpresa;
-    /** Solo lectura: viene del JOIN con EMPRESA, nunca se escribe. */
     private String nombreEmpresa;
     private LocalDateTime fechaCreacion;
     private String usuarioCreacion;

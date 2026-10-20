@@ -71,11 +71,6 @@ public class EstadoCivilService {
         return toDTO(estadoCivil);
     }
 
-    /**
-     * Si el estado civil esta asignado a personas, TRG_ESTADO_CIVIL_BAJA_VALIDA
-     * (ORA-20102) rechaza el DELETE y GlobalExceptionHandler responde 409 con
-     * el mensaje del trigger; aqui no se captura nada (D2).
-     */
     public void delete(Integer id) {
         int filasAfectadas = estadoCivilRepository.deleteById(id);
         if (filasAfectadas == 0) {

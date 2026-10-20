@@ -1,148 +1,3 @@
-/*
- * FASE 2 - Modulo de Planilla
- * 03_fase2_seed_personas_empleados.sql
- *
- * Seed de PERSONA, DOCUMENTO_PERSONA, EMPLEADO y CUENTA_BANCARIA_EMPLEADO.
- * Separado de 02_fase2_seed_catalogos.sql porque depende de que los
- * catalogos (STATUS_EMPLEADO, ESTADO_CIVIL, TIPO_DOCUMENTO, BANCO, PUESTO)
- * ya existan con los mismos ids que genero 02 (1..N en orden de insercion).
- *
- * Requiere ademas que existan, de Fase 1, al menos una fila de GENERO con
- * Nombre = 'Masculino', una con Nombre = 'Femenino', y al menos una fila
- * en SUCURSAL. NO se asume que sus ids sean 1/2/1 (ver AJUSTE Paso A3).
- *
- * Las 100 filas de PERSONA generan IdPersona 1..100 en el mismo orden del
- * script original; DOCUMENTO_PERSONA, EMPLEADO y CUENTA_BANCARIA_EMPLEADO
- * referencian esos ids de forma posicional, igual que en el original
- * (ahi tambien dependian del orden de auto_increment de MySQL).
- *
- * ================================================================
- * PENDIENTE DE APROBACION - PERSONA: 76 de 100 filas con texto corrupto
- * ================================================================
- * El archivo original (src/main/resources/sql/Planilla-SQL.sql) tiene 176
- * ocurrencias del caracter de reemplazo Unicode "�" (U+FFFD), producto de
- * una re-codificacion de encoding perdida (probablemente Latin-1 o
- * Windows-1252 guardado como si fuera UTF-8, y luego vuelto a guardar).
- * El byte original ya no esta: "�" no distingue si la letra debajo era
- * a, e, i, o, u o n con tilde/dieresis - esa informacion no se puede
- * recuperar leyendo el archivo.
- *
- * Afecta a 76 de las 100 filas de PERSONA (76%), en los campos Nombre,
- * Apellido, Direccion (ciudad) y CorreoElectronico. NO afecta a
- * DOCUMENTO_PERSONA, EMPLEADO, CUENTA_BANCARIA_EMPLEADO (son solo numeros
- * y los nombres de archivo/cuenta, sin acentos).
- *
- * Las filas de abajo YA INCLUYEN la correccion propuesta (reconstruida por
- * contexto: son apellidos y nombres de pila comunes en espanol/Guatemala -
- * Garcia, Rodriguez, Gonzalez, Nunez, Chacon, Pena, Bolanos, Sebastian,
- * Jose, etc. - y nombres de municipios reales de Guatemala - Amatitlan,
- * San Jose Pinula, San Pedro Sacatepequez - que ya aparecian sin corromper
- * en otras filas de Direccion). CUALQUIER fila con una letra o nombre que
- * no exista en espanol estandar NO se adivino: no las hay en este dataset,
- * pero si aparecieran se habrian dejado con "�" sin tocar.
- *
- * Esto es una PROPUESTA, no un hecho verificado contra el original de
- * Javier. Antes de ejecutar este archivo: revisar la tabla de mapeo en
- * REPORTE_FASE2_PASOA_TRADUCCION_SQL.md (seccion "PERSONA: 76 filas
- * afectadas") fila por fila, o pedirle a Javier el archivo fuente con el
- * encoding correcto si todavia lo tiene.
- * ================================================================
- *
- * AJUSTE Paso A2: CorreoElectronico normalizado a ASCII (sin tildes, enie
- * -> n) en las 36 filas donde el correo llevaba un caracter no-ASCII
- * (ej. 'aacuña@itcompany.com' -> 'aacuna@itcompany.com'). Motivo:
- * Validators.email de Angular rechaza direcciones no-ASCII. Nombre,
- * Apellido y Direccion NO se tocaron: conservan la reconstruccion de
- * acentos de mas arriba (son texto libre, no un correo que vaya a
- * validarse con ese validador).
- *
- * ================================================================
- * AJUSTE Paso A3: ORA-02291 FK_PERSONA_GENERO al ejecutar en una BD real
- * ================================================================
- * El borrador anterior asumia GENERO.IdGenero = 1 ('Masculino') y 2
- * ('Femenino'), y SUCURSAL.IdSucursal = 1 - literales copiados del orden
- * de insercion de database/01-schema-completo.sql. En la BD donde se
- * ejecuto, esos ids no coincidian (la PK principal 'no encontrada' que
- * reporta ORA-02291 es justamente IdGenero), probablemente porque esa BD
- * ya tiene mas GENERO/SUCURSAL/EMPRESA insertados o en otro orden.
- *
- * Correccion: las 100 filas de PERSONA ya NO llevan el literal 1/2 de
- * IdGenero; llevan una subconsulta por Nombre:
- *   (SELECT IdGenero FROM GENERO WHERE Nombre = 'Masculino')
- *   (SELECT IdGenero FROM GENERO WHERE Nombre = 'Femenino')
- * Verificado contra database/01-schema-completo.sql (lineas 90-94): esos
- * son los dos nombres reales que Fase 1 siembra en GENERO, en ese orden
- * (Masculino primero -> id mas bajo, pero ya no importa cual sea).
- *
- * Las 100 filas de EMPLEADO ya no llevan el literal 1 de IdSucursal;
- * llevan (SELECT MIN(IdSucursal) FROM SUCURSAL) - la sucursal con el id
- * mas bajo, sea cual sea. Fase 1 siembra una sola SUCURSAL ('Oficinas
- * Centrales', database/01-schema-completo.sql:50-57), asi que en una BD
- * que no tenga sucursales adicionales el resultado es el mismo que antes;
- * en una BD con mas de una, cae en la primera que haya, lo cual es
- * aceptable para datos de prueba.
- *
- * SI FALLA CUALQUIER SEED DE ESTE PAQUETE, VUELVE A EMPEZAR DESDE 01 (no
- * corras 03 solo, ni a medias) - correr 02/03 sobre tablas que no se
- * recrearon desde 01 puede dejar ids desalineados igual que paso con
- * GENERO/SUCURSAL.
- * ================================================================
- *
- * ================================================================
- * AJUSTE Paso A4: tampoco IdEstadoCivil, IdPuesto, IdStatusEmpleado,
- * IdTipoDocumento ni IdBanco dependen ya de que el IDENTITY arranque en 1
- * ================================================================
- * CORRECCION sobre lo que decia esta misma nota en el Paso A3: aqui se
- * argumentaba que esos 5 FK podian seguir fijos "a proposito" porque 01
- * reinicia el IDENTITY de sus tablas en cada corrida. Es cierto que ESO
- * los hace deterministas DENTRO de una corrida completa 01->02->03, pero
- * sigue siendo depender de "la identity arranco en 1" - exactamente lo
- * que la regla general de este paso prohibe, sin excepciones.
- *
- * Las 100 filas de PERSONA: IdEstadoCivil literal (1-5) -> subconsulta
- * por Nombre en ESTADO_CIVIL. Las 100 filas de EMPLEADO: IdPuesto literal
- * (1-29) -> subconsulta por Nombre en PUESTO; IdStatusEmpleado literal
- * (siempre 1 = 'Activo') -> subconsulta por Nombre en STATUS_EMPLEADO.
- * Las 100 filas de DOCUMENTO_PERSONA: IdTipoDocumento literal (siempre 1
- * = DPI) -> subconsulta por Nombre en TIPO_DOCUMENTO. Las 100 filas de
- * CUENTA_BANCARIA_EMPLEADO: IdBanco literal (siempre 1 = BANCO
- * INDUSTRIAL) -> subconsulta por Nombre en BANCO.
- *
- * Tabla completa de cada literal cambiado (antes -> despues) en
- * docs/fase2/informes/paso-A4-fks-por-nombre.md.
- *
- * NO se tocaron las referencias POSICIONALES entre tablas que crea este
- * mismo archivo en el mismo orden (DOCUMENTO_PERSONA.IdPersona,
- * EMPLEADO.IdPersona, CUENTA_BANCARIA_EMPLEADO.IdEmpleado, todos 1..100):
- * no estaban en el pedido explicito de este paso, y resolverlas por
- * "nombre" no aplica igual (PERSONA no tiene una columna de negocio
- * unica para buscar 100 veces) - queda como pregunta abierta en el
- * informe, no como algo que se haya decidido dejar o cambiar.
- * ================================================================
- *
- * GUARDA (bloque PL/SQL justo abajo, antes de cualquier INSERT): si
- * PERSONA ya tiene filas, el script se detiene con
- * RAISE_APPLICATION_ERROR(-20100, ...) en vez de duplicar datos. NO
- * borra nada - es solo una traba de seguridad para no volver a correr
- * este archivo por error sobre un seed que ya se aplico. Si de verdad
- * quieres repetirlo, corre primero 01_fase2_ddl.sql (que si recrea las
- * 16 tablas desde cero) y despues 02 y 03 otra vez.
- */
-
--- =====================================================================
--- GUARDA DE RE-EJECUCION: este archivo NO es idempotente (ver header de
--- 02_fase2_seed_catalogos.sql, mismo patron). Si PERSONA ya tiene filas,
--- se asume que el seed de Fase 2 ya corrio antes y se corta aqui, ANTES
--- de llegar a ningun INSERT, en vez de duplicar las 400 filas de este
--- archivo o romper con un ORA-00001 (PK) a mitad de camino.
---
--- NO hace ningun DROP/DELETE/TRUNCATE - solo lee (SELECT COUNT(*)) y, si
--- corresponde, aborta con un error de negocio en el rango -20000/-20999,
--- la misma convencion que ya usan los triggers *_BAJA_VALIDA de Fase 1
--- (ver database/01-schema-completo.sql) y que GlobalExceptionHandler.java
--- ya sabe limpiar y mostrarle al usuario tal cual si esto se llega a
--- ejecutar alguna vez desde la aplicacion en lugar de un cliente SQL.
--- =====================================================================
 DECLARE
     v_Count NUMBER;
 BEGIN
@@ -153,11 +8,6 @@ BEGIN
 END;
 /
 
--- =====================================================================
--- PERSONA (100 filas) - IdPersona esperado: 1..100
--- 76 de estas 100 filas llevan la correccion PROPUESTA de encoding
--- descrita arriba. Las 24 filas restantes no tenian texto corrupto.
--- =====================================================================
 INSERT INTO PERSONA (Nombre, Apellido, FechaNacimiento, IdGenero, Direccion, Telefono, CorreoElectronico, IdEstadoCivil, FechaCreacion, UsuarioCreacion) VALUES ('Ernesto Arturo', 'Quesada Pineda', TO_DATE('1992-11-25','YYYY-MM-DD'), (SELECT IdGenero FROM GENERO WHERE Nombre = 'Masculino'), 'Zona 1, Guatemala, Guatemala', '502-53180319', 'equesada@itcompany.com', (SELECT IdEstadoCivil FROM ESTADO_CIVIL WHERE Nombre = 'Divorciado(a)'), SYSTIMESTAMP, 'system');
 INSERT INTO PERSONA (Nombre, Apellido, FechaNacimiento, IdGenero, Direccion, Telefono, CorreoElectronico, IdEstadoCivil, FechaCreacion, UsuarioCreacion) VALUES ('Martina Isadora', 'Navarro García', TO_DATE('2000-10-27','YYYY-MM-DD'), (SELECT IdGenero FROM GENERO WHERE Nombre = 'Femenino'), 'Zona 9, Amatitlán, Guatemala', '502-19084398', 'mnavarro@itcompany.com', (SELECT IdEstadoCivil FROM ESTADO_CIVIL WHERE Nombre = 'Soltero(a)'), SYSTIMESTAMP, 'system');
 INSERT INTO PERSONA (Nombre, Apellido, FechaNacimiento, IdGenero, Direccion, Telefono, CorreoElectronico, IdEstadoCivil, FechaCreacion, UsuarioCreacion) VALUES ('Marco Miguel', 'Aguilar Ríos', TO_DATE('1972-09-20','YYYY-MM-DD'), (SELECT IdGenero FROM GENERO WHERE Nombre = 'Masculino'), 'Zona 1, Chinautla, Guatemala', '502-11480761', 'maguilar@itcompany.com', (SELECT IdEstadoCivil FROM ESTADO_CIVIL WHERE Nombre = 'Soltero(a)'), SYSTIMESTAMP, 'system');
@@ -259,12 +109,6 @@ INSERT INTO PERSONA (Nombre, Apellido, FechaNacimiento, IdGenero, Direccion, Tel
 INSERT INTO PERSONA (Nombre, Apellido, FechaNacimiento, IdGenero, Direccion, Telefono, CorreoElectronico, IdEstadoCivil, FechaCreacion, UsuarioCreacion) VALUES ('Rocio Ana', 'Delgado Guzmán', TO_DATE('2000-12-18','YYYY-MM-DD'), (SELECT IdGenero FROM GENERO WHERE Nombre = 'Femenino'), 'Zona 4, Palencia, Guatemala', '502-36470075', 'rdelgado@itcompany.com', (SELECT IdEstadoCivil FROM ESTADO_CIVIL WHERE Nombre = 'Union de hecho'), SYSTIMESTAMP, 'system');
 INSERT INTO PERSONA (Nombre, Apellido, FechaNacimiento, IdGenero, Direccion, Telefono, CorreoElectronico, IdEstadoCivil, FechaCreacion, UsuarioCreacion) VALUES ('Sofia Carolina', 'Vargas Rivas', TO_DATE('2009-02-14','YYYY-MM-DD'), (SELECT IdGenero FROM GENERO WHERE Nombre = 'Femenino'), 'Zona 5, San José del Golfo, Guatemala', '502-83724325', 'svargas@itcompany.com', (SELECT IdEstadoCivil FROM ESTADO_CIVIL WHERE Nombre = 'Casado(a)'), SYSTIMESTAMP, 'system');
 
-
--- =====================================================================
--- DOCUMENTO_PERSONA (100 filas) - PK compuesta (IdTipoDocumento, IdPersona)
--- Las 100 personas tienen su DPI (IdTipoDocumento = 1). IdPersona 1..100
--- referencia posicionalmente las filas de PERSONA insertadas arriba.
--- =====================================================================
 INSERT INTO DOCUMENTO_PERSONA (IdTipoDocumento, IdPersona, NoDocumento, FechaCreacion, UsuarioCreacion) VALUES ((SELECT IdTipoDocumento FROM TIPO_DOCUMENTO WHERE Nombre = 'Documento Personal de Identificacion (DPI)'), 1, '9843 55061 4572', SYSTIMESTAMP, 'system');
 INSERT INTO DOCUMENTO_PERSONA (IdTipoDocumento, IdPersona, NoDocumento, FechaCreacion, UsuarioCreacion) VALUES ((SELECT IdTipoDocumento FROM TIPO_DOCUMENTO WHERE Nombre = 'Documento Personal de Identificacion (DPI)'), 2, '7075 73013 6224', SYSTIMESTAMP, 'system');
 INSERT INTO DOCUMENTO_PERSONA (IdTipoDocumento, IdPersona, NoDocumento, FechaCreacion, UsuarioCreacion) VALUES ((SELECT IdTipoDocumento FROM TIPO_DOCUMENTO WHERE Nombre = 'Documento Personal de Identificacion (DPI)'), 3, '2530 90222 1019', SYSTIMESTAMP, 'system');
@@ -366,15 +210,6 @@ INSERT INTO DOCUMENTO_PERSONA (IdTipoDocumento, IdPersona, NoDocumento, FechaCre
 INSERT INTO DOCUMENTO_PERSONA (IdTipoDocumento, IdPersona, NoDocumento, FechaCreacion, UsuarioCreacion) VALUES ((SELECT IdTipoDocumento FROM TIPO_DOCUMENTO WHERE Nombre = 'Documento Personal de Identificacion (DPI)'), 99, '5166 41205 5957', SYSTIMESTAMP, 'system');
 INSERT INTO DOCUMENTO_PERSONA (IdTipoDocumento, IdPersona, NoDocumento, FechaCreacion, UsuarioCreacion) VALUES ((SELECT IdTipoDocumento FROM TIPO_DOCUMENTO WHERE Nombre = 'Documento Personal de Identificacion (DPI)'), 100, '9823 32332 3967', SYSTIMESTAMP, 'system');
 
-
--- =====================================================================
--- EMPLEADO (100 filas) - IdEmpleado esperado: 1..100
--- IdPersona 1..100 referencia posicionalmente PERSONA. IdSucursal = 1 en
--- las 100 filas (asume SUCURSAL.IdSucursal = 1 existe - confirmar Parte
--- 1.3). IdPuesto 1..29 referencia posicionalmente PUESTO (02). Fecha de
--- contratacion '1990-01-01' literal en las 100 filas, igual que el
--- original (dato de prueba del catedratico, no un bug).
--- =====================================================================
 INSERT INTO EMPLEADO (IdPersona,IdSucursal,FechaContratacion,IdPuesto,IdStatusEmpleado,IngresoSueldoBase,IngresoBonificacionDecreto,IngresoOtrosIngresos,DescuentoIgss,DescuentoIsr,DescuentoInasistencias,FechaCreacion,UsuarioCreacion) VALUES (1, (SELECT MIN(IdSucursal) FROM SUCURSAL), TO_DATE('1990-01-01','YYYY-MM-DD'),(SELECT IdPuesto FROM PUESTO WHERE Nombre = 'Administrador de Bases de Datos'),(SELECT IdStatusEmpleado FROM STATUS_EMPLEADO WHERE Nombre = 'Activo'),11000,250,0,531.3,0,0,SYSTIMESTAMP,'system');
 INSERT INTO EMPLEADO (IdPersona,IdSucursal,FechaContratacion,IdPuesto,IdStatusEmpleado,IngresoSueldoBase,IngresoBonificacionDecreto,IngresoOtrosIngresos,DescuentoIgss,DescuentoIsr,DescuentoInasistencias,FechaCreacion,UsuarioCreacion) VALUES (2, (SELECT MIN(IdSucursal) FROM SUCURSAL), TO_DATE('1990-01-01','YYYY-MM-DD'),(SELECT IdPuesto FROM PUESTO WHERE Nombre = 'Administrador de Bases de Datos'),(SELECT IdStatusEmpleado FROM STATUS_EMPLEADO WHERE Nombre = 'Activo'),11000,250,0,531.3,0,0,SYSTIMESTAMP,'system');
 INSERT INTO EMPLEADO (IdPersona,IdSucursal,FechaContratacion,IdPuesto,IdStatusEmpleado,IngresoSueldoBase,IngresoBonificacionDecreto,IngresoOtrosIngresos,DescuentoIgss,DescuentoIsr,DescuentoInasistencias,FechaCreacion,UsuarioCreacion) VALUES (3, (SELECT MIN(IdSucursal) FROM SUCURSAL), TO_DATE('1990-01-01','YYYY-MM-DD'),(SELECT IdPuesto FROM PUESTO WHERE Nombre = 'Analista de Datos'),(SELECT IdStatusEmpleado FROM STATUS_EMPLEADO WHERE Nombre = 'Activo'),10500,250,0,507.15,0,0,SYSTIMESTAMP,'system');
@@ -476,13 +311,6 @@ INSERT INTO EMPLEADO (IdPersona,IdSucursal,FechaContratacion,IdPuesto,IdStatusEm
 INSERT INTO EMPLEADO (IdPersona,IdSucursal,FechaContratacion,IdPuesto,IdStatusEmpleado,IngresoSueldoBase,IngresoBonificacionDecreto,IngresoOtrosIngresos,DescuentoIgss,DescuentoIsr,DescuentoInasistencias,FechaCreacion,UsuarioCreacion) VALUES (99, (SELECT MIN(IdSucursal) FROM SUCURSAL), TO_DATE('1990-01-01','YYYY-MM-DD'),(SELECT IdPuesto FROM PUESTO WHERE Nombre = 'Técnico de Soporte IT'),(SELECT IdStatusEmpleado FROM STATUS_EMPLEADO WHERE Nombre = 'Activo'),9000,250,0,434.7,0,0,SYSTIMESTAMP,'system');
 INSERT INTO EMPLEADO (IdPersona,IdSucursal,FechaContratacion,IdPuesto,IdStatusEmpleado,IngresoSueldoBase,IngresoBonificacionDecreto,IngresoOtrosIngresos,DescuentoIgss,DescuentoIsr,DescuentoInasistencias,FechaCreacion,UsuarioCreacion) VALUES (100, (SELECT MIN(IdSucursal) FROM SUCURSAL), TO_DATE('1990-01-01','YYYY-MM-DD'),(SELECT IdPuesto FROM PUESTO WHERE Nombre = 'Técnico de Soporte IT'),(SELECT IdStatusEmpleado FROM STATUS_EMPLEADO WHERE Nombre = 'Activo'),9000,250,0,434.7,0,0,SYSTIMESTAMP,'system');
 
-
--- =====================================================================
--- CUENTA_BANCARIA_EMPLEADO (100 filas) - IdEmpleado 1..100 posicional.
--- IdBanco = 1 ('BANCO INDUSTRIAL') en las 100 filas (dato de prueba del
--- catedratico). Activa = 1 literal, compatible con la columna propuesta
--- NUMBER(1) (decision D1 de 01_fase2_ddl.sql).
--- =====================================================================
 INSERT INTO CUENTA_BANCARIA_EMPLEADO (IdEmpleado,IdBanco,NumeroDeCuenta,Activa,FechaCreacion,UsuarioCreacion) VALUES (1,(SELECT IdBanco FROM BANCO WHERE Nombre = 'BANCO INDUSTRIAL'),'001-438715',1,SYSTIMESTAMP,'system');
 INSERT INTO CUENTA_BANCARIA_EMPLEADO (IdEmpleado,IdBanco,NumeroDeCuenta,Activa,FechaCreacion,UsuarioCreacion) VALUES (2,(SELECT IdBanco FROM BANCO WHERE Nombre = 'BANCO INDUSTRIAL'),'001-558735',1,SYSTIMESTAMP,'system');
 INSERT INTO CUENTA_BANCARIA_EMPLEADO (IdEmpleado,IdBanco,NumeroDeCuenta,Activa,FechaCreacion,UsuarioCreacion) VALUES (3,(SELECT IdBanco FROM BANCO WHERE Nombre = 'BANCO INDUSTRIAL'),'001-64453',1,SYSTIMESTAMP,'system');

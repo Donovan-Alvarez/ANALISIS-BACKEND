@@ -14,10 +14,6 @@ import java.util.Optional;
 @Repository
 public class DepartamentoRepository {
 
-    /**
-     * Todas las lecturas traen el nombre de la empresa. LEFT JOIN para que un
-     * departamento sin empresa (posible antes de 06) no quede oculto.
-     */
     private static final String SELECT_BASE = """
             SELECT d.IdDepartamento, d.Nombre, d.IdEmpresa, e.Nombre AS NombreEmpresa,
                    d.FechaCreacion, d.UsuarioCreacion, d.FechaModificacion, d.UsuarioModificacion
@@ -48,7 +44,6 @@ public class DepartamentoRepository {
         return jdbcTemplate.query(sql, departamentoRowMapper, idEmpresa);
     }
 
-    /** Duplicado dentro de la misma empresa, sin distinguir mayusculas ni espacios de los extremos (alta). */
     public boolean existsByEmpresaYNombre(Integer idEmpresa, String nombre) {
         String sql = """
                 SELECT COUNT(*)
@@ -60,7 +55,6 @@ public class DepartamentoRepository {
         return total != null && total > 0;
     }
 
-    /** Igual que {@link #existsByEmpresaYNombre(Integer, String)}, sin contar el propio registro (cambio). */
     public boolean existsByEmpresaYNombreExcluyendoId(Integer idEmpresa, String nombre, Integer idExcluir) {
         String sql = """
                 SELECT COUNT(*)
@@ -73,7 +67,6 @@ public class DepartamentoRepository {
         return total != null && total > 0;
     }
 
-    /** Puestos del departamento: impide cambiarle la empresa si tiene alguno. */
     public int countPuestos(Integer idDepartamento) {
         String sql = "SELECT COUNT(*) FROM PUESTO WHERE IdDepartamento = ?";
         Integer total = jdbcTemplate.queryForObject(sql, Integer.class, idDepartamento);

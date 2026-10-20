@@ -13,11 +13,6 @@ import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-/**
- * Prueba unitaria del mapeo de errores Oracle -> HTTP, sin base de datos:
- * se simula el SQLException que lanzaria el driver (mismo errorCode y texto
- * "ORA-xxxxx: ...") envuelto en la DataAccessException que arma Spring JDBC.
- */
 class GlobalExceptionHandlerTest {
 
     private final GlobalExceptionHandler handler = new GlobalExceptionHandler();

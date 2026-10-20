@@ -22,10 +22,6 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-/**
- * Prueba unitaria de las reglas del Service (duplicados, trim, auditoria D1),
- * con el repositorio simulado: sin base de datos ni contexto Spring.
- */
 @ExtendWith(MockitoExtension.class)
 class TipoDocumentoServiceTest {
 
@@ -72,7 +68,7 @@ class TipoDocumentoServiceTest {
         TipoDocumento guardado = captor.getValue();
         assertThat(guardado.getNombre()).isEqualTo("Carné de residente");
         assertThat(guardado.getFechaCreacion()).isNotNull();
-        assertThat(guardado.getUsuarioCreacion()).isEqualTo("system"); // sin usuario autenticado
+        assertThat(guardado.getUsuarioCreacion()).isEqualTo("system");
         assertThat(guardado.getFechaModificacion()).isNull();
         assertThat(creado.getIdTipoDocumento()).isEqualTo(10);
         assertThat(creado.getNombre()).isEqualTo("Carné de residente");

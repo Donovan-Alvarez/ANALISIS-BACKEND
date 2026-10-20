@@ -14,7 +14,6 @@ public class Puesto {
     private Integer idPuesto;
     private String nombre;
     private Integer idDepartamento;
-    /** Solo lectura: vienen del JOIN con DEPARTAMENTO y EMPRESA, nunca se escriben. */
     private String nombreDepartamento;
     private Integer idEmpresa;
     private String nombreEmpresa;

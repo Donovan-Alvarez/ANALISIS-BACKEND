@@ -71,11 +71,6 @@ public class BancoService {
         return toDTO(banco);
     }
 
-    /**
-     * Si el banco esta asociado a cuentas bancarias de empleados, TRG_BANCO_BAJA_VALIDA
-     * (ORA-20107) rechaza el DELETE y GlobalExceptionHandler responde 409 con
-     * el mensaje del trigger; aqui no se captura nada (D2).
-     */
     public void delete(Integer id) {
         int filasAfectadas = bancoRepository.deleteById(id);
         if (filasAfectadas == 0) {

@@ -21,7 +21,6 @@ public class PuestoDTO {
     @NotNull(message = "El departamento es obligatorio")
     private Integer idDepartamento;
 
-    /** Solo lectura (respuesta). Si llegan en el cuerpo, se ignoran: la empresa sale del departamento. */
     private String nombreDepartamento;
     private Integer idEmpresa;
     private String nombreEmpresa;

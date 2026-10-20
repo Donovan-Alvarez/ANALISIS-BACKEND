@@ -42,7 +42,6 @@ public class TipoDocumentoRepository {
         return jdbcTemplate.query(sql, tipoDocumentoRowMapper, id).stream().findFirst();
     }
 
-    /** Duplicado sin distinguir mayusculas ni espacios de los extremos (alta). */
     public boolean existsByNombre(String nombre) {
         String sql = """
                 SELECT COUNT(*)
@@ -53,7 +52,6 @@ public class TipoDocumentoRepository {
         return total != null && total > 0;
     }
 
-    /** Igual que {@link #existsByNombre(String)}, pero sin contar el propio registro (cambio). */
     public boolean existsByNombreExcluyendoId(String nombre, Integer idExcluir) {
         String sql = """
                 SELECT COUNT(*)

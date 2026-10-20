@@ -71,11 +71,6 @@ public class TipoDocumentoService {
         return toDTO(tipoDocumento);
     }
 
-    /**
-     * Si el tipo de documento esta asignado a documentos de persona, TRG_TIPO_DOCUMENTO_BAJA_VALIDA
-     * (ORA-20106) rechaza el DELETE y GlobalExceptionHandler responde 409 con
-     * el mensaje del trigger; aqui no se captura nada (D2).
-     */
     public void delete(Integer id) {
         int filasAfectadas = tipoDocumentoRepository.deleteById(id);
         if (filasAfectadas == 0) {

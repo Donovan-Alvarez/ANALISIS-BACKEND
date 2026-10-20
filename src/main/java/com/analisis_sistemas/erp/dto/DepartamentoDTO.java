@@ -21,6 +21,5 @@ public class DepartamentoDTO {
     @NotNull(message = "La empresa es obligatoria")
     private Integer idEmpresa;
 
-    /** Solo lectura (respuesta). Si llega en el cuerpo, se ignora. */
     private String nombreEmpresa;
 }

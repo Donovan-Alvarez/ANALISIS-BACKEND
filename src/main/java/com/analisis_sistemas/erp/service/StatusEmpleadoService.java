@@ -71,12 +71,6 @@ public class StatusEmpleadoService {
         return toDTO(statusEmpleado);
     }
 
-    /**
-     * Si el status de empleado esta asignado a empleados, se usa en flujos de status o aparece
-     * en detalles de planilla, TRG_STATUS_EMPLEADO_BAJA_VALIDA
-     * (ORA-20103/-20104/-20105) rechaza el DELETE y GlobalExceptionHandler responde 409 con
-     * el mensaje del trigger; aqui no se captura nada (D2).
-     */
     public void delete(Integer id) {
         int filasAfectadas = statusEmpleadoRepository.deleteById(id);
         if (filasAfectadas == 0) {

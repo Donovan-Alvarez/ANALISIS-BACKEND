@@ -14,10 +14,6 @@ import java.util.Optional;
 @Repository
 public class PuestoRepository {
 
-    /**
-     * Todas las lecturas traen departamento y empresa. PUESTO no guarda la
-     * empresa: sale siempre de su departamento.
-     */
     private static final String SELECT_BASE = """
             SELECT p.IdPuesto, p.Nombre, p.IdDepartamento, d.Nombre AS NombreDepartamento,
                    d.IdEmpresa, e.Nombre AS NombreEmpresa,
@@ -55,7 +51,6 @@ public class PuestoRepository {
         return jdbcTemplate.query(sql, puestoRowMapper, idEmpresa);
     }
 
-    /** Duplicado dentro del mismo departamento, sin distinguir mayusculas ni espacios de los extremos (alta). */
     public boolean existsByDepartamentoYNombre(Integer idDepartamento, String nombre) {
         String sql = """
                 SELECT COUNT(*)
@@ -67,7 +62,6 @@ public class PuestoRepository {
         return total != null && total > 0;
     }
 
-    /** Igual que {@link #existsByDepartamentoYNombre(Integer, String)}, sin contar el propio registro (cambio). */
     public boolean existsByDepartamentoYNombreExcluyendoId(Integer idDepartamento, String nombre, Integer idExcluir) {
         String sql = """
                 SELECT COUNT(*)
@@ -80,7 +74,6 @@ public class PuestoRepository {
         return total != null && total > 0;
     }
 
-    /** Empleados con este puesto: impide moverlo a un departamento de otra empresa. */
     public int countEmpleados(Integer idPuesto) {
         String sql = "SELECT COUNT(*) FROM EMPLEADO WHERE IdPuesto = ?";
         Integer total = jdbcTemplate.queryForObject(sql, Integer.class, idPuesto);
